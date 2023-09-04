@@ -11,6 +11,7 @@ async-stripe = { version = "0.22.2", default-features = false, features = [
 base64 = { version = "0.21.3", default-features = false }
 http = { version = "0.2.9", default-features = false }
 jwtk = { version = "0.3.0", default-features = false, features = ["remote-jwks"] }
+openssl = { version = "0.10.57", features = ["vendored"] }
 prost = { version = "0.12.0", default-features = false }
 reqwest = { version = "0.11.20", default-features = false }
 serde = { version = "1.0.188", default-features = false, features = ["derive"] }
