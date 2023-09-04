@@ -1,4 +1,4 @@
-# Payments service for peoplesmarkets.com
+# Payment service for peoplesmarkets.com
 
 ## Prerequesites
 

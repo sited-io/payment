@@ -3,15 +3,15 @@ use std::time::Duration;
 use http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use http::{HeaderName, Method};
 use jwtk::jwk::RemoteJwksVerifier;
-use payments::logging::{LogOnFailure, LogOnRequest, LogOnResponse};
-use payments::zitadel::ZitadelService;
+use payment::logging::{LogOnFailure, LogOnRequest, LogOnResponse};
+use payment::zitadel::ZitadelService;
 use stripe::Client;
 use tonic::transport::Server;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use payments::api::peoplesmarkets::payments::v1::stripe_service_server::StripeServiceServer;
-use payments::{get_env_var, StripeService};
+use payment::api::peoplesmarkets::payment::v1::stripe_service_server::StripeServiceServer;
+use payment::{get_env_var, StripeService};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tonic_health::pb::FILE_DESCRIPTOR_SET,
         )
         .register_encoded_file_descriptor_set(
-            payments::api::peoplesmarkets::FILE_DESCRIPTOR_SET,
+            payment::api::peoplesmarkets::FILE_DESCRIPTOR_SET,
         )
         .build()
         .unwrap();

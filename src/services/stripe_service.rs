@@ -8,10 +8,10 @@ use stripe::{
 };
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::api::peoplesmarkets::payments::v1::stripe_service_server::{
+use crate::api::peoplesmarkets::payment::v1::stripe_service_server::{
     self, StripeServiceServer,
 };
-use crate::api::peoplesmarkets::payments::v1::{
+use crate::api::peoplesmarkets::payment::v1::{
     CreateAccountLinkRequest, CreateAccountLinkResponse, CreateAccountRequest,
     CreateAccountResponse, GetAccountRequest, GetAccountResponse,
 };

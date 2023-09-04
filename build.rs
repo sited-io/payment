@@ -2,7 +2,7 @@ use std::io::Result;
 
 fn main() -> Result<()> {
     const PROTOS: &[&str] =
-        &["service-apis/proto/peoplesmarkets/payments/v1/stripe.proto"];
+        &["service-apis/proto/peoplesmarkets/payment/v1/stripe.proto"];
     const INCLUDES: &[&str] = &["service-apis/proto"];
 
     tonic_build::configure()
