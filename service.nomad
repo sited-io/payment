@@ -60,6 +60,7 @@ ZITADEL_BASE_URL='http://{{ env "NOMAD_UPSTREAM_ADDR_zitadel" }}'
 ZITADEL_CLIENT_ID='payment_service'
 {{ with secret "kv2/data/services/payment" }}
 ZITADEL_CLIENT_SECRET='{{ .Data.data.ZITADEL_CLIENT_SECRET }}'
+STRIPE_SECRET_KEY='{{ .Data.data.STRIPE_SECRET_KEY }}'
 {{ end }}
 EOF
       }
