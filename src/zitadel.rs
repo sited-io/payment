@@ -64,7 +64,12 @@ impl ZitadelService {
             .json(&MetadataValueRequest { value: account_id })
             .send()
             .await
-            .map_err(reqwest_error_to_status)?;
+            .map_err(|err| {
+                tracing::log::error!(
+                    "[ZitadelService.update_stripe_id]: '{err}'"
+                );
+                Status::internal("")
+            })?;
 
         Ok(())
     }
@@ -79,10 +84,20 @@ impl ZitadelService {
             .form(&AUTH_REQUEST)
             .send()
             .await
-            .map_err(reqwest_error_to_status)?
+            .map_err(|err| {
+                tracing::log::error!(
+                    "[ZitadelService.get_access_token] - sending auth request: '{err}'"
+                );
+                Status::internal("")
+            })?
             .json()
             .await
-            .map_err(reqwest_error_to_status)
+            .map_err(|err| {
+                tracing::log::error!(
+                    "[ZitadelService.get_access_token] - parsing auth reponse: '{err}'"
+                );
+                Status::internal("")
+            })
     }
 
     fn auth_url(&self) -> String {
@@ -99,9 +114,4 @@ impl ZitadelService {
             self.base_url, user_id, key
         )
     }
-}
-
-fn reqwest_error_to_status(err: reqwest::Error) -> Status {
-    tracing::log::error!("{err}");
-    Status::internal("")
 }
