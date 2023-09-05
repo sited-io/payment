@@ -28,7 +28,7 @@ struct MetadataValueRequest<'a> {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct AuthenticationResponse {
+pub struct AuthenticationResponse {
     pub access_token: String,
     pub token_type: String,
     pub expires_in: u64,
@@ -55,8 +55,7 @@ impl ZitadelService {
     ) -> Result<(), Status> {
         let access_token = self.get_access_token().await?.access_token;
 
-        self
-            .client
+        self.client
             .request(
                 Method::POST,
                 self.user_metadata_url(user_id, "stripe_account_id"),

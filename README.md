@@ -34,6 +34,10 @@ export JWKS_URL='https://auth-dev.peoplesmarkets.com/oauth/v2/keys'
 export JWKS_HOST='auth-dev.peoplesmarkets.com'
 
 export STRIPE_SECRET_KEY="xxxx"
+
+export ZITADEL_BASE_URL='https://auth-dev.peoplesmarkets.com'
+export ZITADEL_CLIENT_ID='xxxx'
+export ZITADEL_CLIENT_SECRET='xxxx'
 ```
 
 Then run:

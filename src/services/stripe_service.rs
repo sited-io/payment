@@ -47,9 +47,7 @@ impl StripeService {
         StripeServiceServer::new(service)
     }
 
-    fn decode_account_id<'a>(
-        metadata: Option<Metadata>,
-    ) -> Result<String, Status> {
+    fn decode_account_id(metadata: Option<Metadata>) -> Result<String, Status> {
         let account_id = metadata
             .and_then(|m| m.stripe_account_id)
             .and_then(|id| {
