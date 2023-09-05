@@ -73,6 +73,9 @@ impl stripe_service_server::StripeService for StripeService {
         match metadata.and_then(|m| m.stripe_account_id) {
             Some(_) => Ok(Response::new(CreateAccountResponse {})),
             None => {
+                let zitadel_auth =
+                    self.zitadel_service.get_access_token().await?;
+
                 let account = Account::create(
                     &self.stripe_client,
                     CreateAccount {
@@ -87,7 +90,11 @@ impl stripe_service_server::StripeService for StripeService {
                 let account_id = base64::engine::general_purpose::STANDARD
                     .encode(account.id.as_str());
                 self.zitadel_service
-                    .update_stripe_id(&user_id, &account_id)
+                    .update_stripe_id(
+                        &zitadel_auth.access_token,
+                        &user_id,
+                        &account_id,
+                    )
                     .await?;
 
                 Ok(Response::new(CreateAccountResponse {}))

@@ -50,11 +50,10 @@ impl ZitadelService {
 
     pub async fn update_stripe_id(
         &self,
+        access_token: &String,
         user_id: &String,
         account_id: &String,
     ) -> Result<(), Status> {
-        let access_token = self.get_access_token().await?.access_token;
-
         self.client
             .request(
                 Method::POST,
@@ -74,8 +73,10 @@ impl ZitadelService {
         Ok(())
     }
 
-    async fn get_access_token(&self) -> Result<AuthenticationResponse, Status> {
-        self.client
+    pub async fn get_access_token(
+        &self,
+    ) -> Result<AuthenticationResponse, Status> {
+        let response = self.client
             .request(Method::POST, self.auth_url())
             .basic_auth(
                 self.client_id.clone(),
@@ -89,7 +90,13 @@ impl ZitadelService {
                     "[ZitadelService.get_access_token] - sending auth request: '{err:?}'"
                 );
                 Status::internal("")
-            })?
+            })?;
+
+        tracing::log::debug!(
+            "[ZitadelService.get_access_token] - auth response: '{response:?}"
+        );
+
+        response
             .json()
             .await
             .map_err(|err| {
