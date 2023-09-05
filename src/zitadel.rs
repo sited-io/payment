@@ -30,8 +30,8 @@ struct MetadataValueRequest<'a> {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthenticationResponse {
     pub access_token: String,
-    pub token_type: String,
-    pub expires_in: u64,
+    pub token_type: Option<String>,
+    pub expires_in: Option<u64>,
 }
 
 impl ZitadelService {
@@ -66,7 +66,7 @@ impl ZitadelService {
             .await
             .map_err(|err| {
                 tracing::log::error!(
-                    "[ZitadelService.update_stripe_id]: '{err}'"
+                    "[ZitadelService.update_stripe_id]: '{err:?}'"
                 );
                 Status::internal("")
             })?;
@@ -86,7 +86,7 @@ impl ZitadelService {
             .await
             .map_err(|err| {
                 tracing::log::error!(
-                    "[ZitadelService.get_access_token] - sending auth request: '{err}'"
+                    "[ZitadelService.get_access_token] - sending auth request: '{err:?}'"
                 );
                 Status::internal("")
             })?
@@ -94,7 +94,7 @@ impl ZitadelService {
             .await
             .map_err(|err| {
                 tracing::log::error!(
-                    "[ZitadelService.get_access_token] - parsing auth reponse: '{err}'"
+                    "[ZitadelService.get_access_token] - parsing auth reponse: '{err:?}'"
                 );
                 Status::internal("")
             })
