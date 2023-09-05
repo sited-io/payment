@@ -39,9 +39,20 @@ impl ZitadelService {
         base_url: String,
         client_id: String,
         client_secret: String,
+        zitadel_host: &String,
     ) -> Self {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            reqwest::header::HOST,
+            reqwest::header::HeaderValue::from_str(zitadel_host).unwrap(),
+        );
+        let client = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()
+            .unwrap();
+
         Self {
-            client: Client::new(),
+            client,
             base_url,
             client_id,
             client_secret,

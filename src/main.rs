@@ -32,6 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         get_env_var("ZITADEL_BASE_URL"),
         get_env_var("ZITADEL_CLIENT_ID"),
         get_env_var("ZITADEL_CLIENT_SECRET"),
+        &jwks_host,
     );
 
     // initialize client for JWT verification against public JWKS
