@@ -57,7 +57,7 @@ HOST='0.0.0.0:{{ env "NOMAD_PORT_grpc" }}'
 
 DB_HOST='{{ env "NOMAD_UPSTREAM_IP_cockroach-sql" }}'
 DB_PORT='{{ env "NOMAD_UPSTREAM_PORT_cockroach-sql" }}'
-DB_DBNAME='commerce'
+DB_DBNAME='payment'
 DB_USER='payment_user'
 {{ with secret "database/static-creds/payment_user" }}
 DB_PASSWORD='{{ .Data.password }}'
