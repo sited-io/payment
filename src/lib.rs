@@ -1,8 +1,9 @@
 pub mod api;
 mod auth;
+pub mod db;
 pub mod logging;
+mod model;
 mod services;
-pub mod zitadel;
 
 pub use services::*;
 

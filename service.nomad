@@ -22,6 +22,14 @@ job "payment" {
               destination_name = "zitadel"
               local_bind_port  = 8080
             }
+            upstreams {
+              destination_name = "cockroach-sql"
+              local_bind_port  = 5432
+            }
+            upstreams {
+              destination_name = "commerce-api"
+              local_bind_port  = 10000
+            }
           }
         }
       }
@@ -47,19 +55,26 @@ job "payment" {
         data        = <<EOF
 HOST='0.0.0.0:{{ env "NOMAD_PORT_grpc" }}'
 
+DB_HOST='{{ env "NOMAD_UPSTREAM_IP_cockroach-sql" }}'
+DB_PORT='{{ env "NOMAD_UPSTREAM_PORT_cockroach-sql" }}'
+DB_DBNAME='commerce'
+DB_USER='payment_user'
+{{ with secret "database/static-creds/payment_user" }}
+DB_PASSWORD='{{ .Data.password }}'
+{{ end }}
+
 {{ with nomadVar "nomad/jobs/" }}
 JWKS_HOST='{{ .JWKS_HOST }}'
 {{ end }}
 JWKS_URL='http://{{ env "NOMAD_UPSTREAM_ADDR_zitadel" }}/oauth/v2/keys'
 
+COMMERCE_SERVICE_URL='http://{{ env "NOMAD_UPSTREAM_ADDR_commerce-api" }}'
+
 {{ with nomadVar "nomad/jobs/payment" }}
 RUST_LOG='{{ .LOG_LEVEL }}'
 {{ end }}
 
-ZITADEL_BASE_URL='http://{{ env "NOMAD_UPSTREAM_ADDR_zitadel" }}'
-ZITADEL_CLIENT_ID='payment_service'
 {{ with secret "kv2/data/services/payment" }}
-ZITADEL_CLIENT_SECRET='{{ .Data.data.ZITADEL_CLIENT_SECRET }}'
 STRIPE_SECRET_KEY='{{ .Data.data.STRIPE_SECRET_KEY }}'
 {{ end }}
 EOF

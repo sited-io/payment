@@ -3,13 +3,14 @@ use std::time::Duration;
 use http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use http::{HeaderName, Method};
 use jwtk::jwk::RemoteJwksVerifier;
+use payment::db::{init_db_pool, migrate};
 use payment::logging::{LogOnFailure, LogOnRequest, LogOnResponse};
-use payment::zitadel::ZitadelService;
 use stripe::Client;
 use tonic::transport::Server;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
+use payment::api::peoplesmarkets::commerce::v1::market_booth_service_client::MarketBoothServiceClient;
 use payment::api::peoplesmarkets::payment::v1::stripe_service_server::StripeServiceServer;
 use payment::{get_env_var, StripeService};
 
@@ -24,16 +25,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let jwks_url = get_env_var("JWKS_URL");
     let jwks_host = get_env_var("JWKS_HOST");
 
+    // initialize database connection and migrate
+    let db_pool = init_db_pool(
+        get_env_var("DB_HOST"),
+        get_env_var("DB_PORT").parse().unwrap(),
+        get_env_var("DB_USER"),
+        get_env_var("DB_PASSWORD"),
+        get_env_var("DB_DBNAME"),
+    )?;
+    migrate(&db_pool).await?;
+
+    // initialize market booth service client
+    let market_booth_service_client =
+        MarketBoothServiceClient::connect(get_env_var("COMMERCE_SERVICE_URL"))
+            .await?;
+
     // initialize stripe client
     let stripe_client = Client::new(get_env_var("STRIPE_SECRET_KEY"));
-
-    // initialize zitadel client service
-    let zitadel_service = ZitadelService::new(
-        get_env_var("ZITADEL_BASE_URL"),
-        get_env_var("ZITADEL_CLIENT_ID"),
-        get_env_var("ZITADEL_CLIENT_SECRET"),
-        &jwks_host,
-    );
 
     // initialize client for JWT verification against public JWKS
     //   adding host header in order to work in private network
@@ -65,13 +73,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     let stripe_service = StripeService::build(
+        db_pool,
         RemoteJwksVerifier::new(
             jwks_url,
             Some(client),
             Duration::from_secs(120),
         ),
         stripe_client,
-        zitadel_service,
+        market_booth_service_client,
     );
 
     tracing::log::info!("gRPC+web server listening on {}", host);

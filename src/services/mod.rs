@@ -1,8 +1,17 @@
-mod stripe_service;
-
 use stripe::{ParseIdError, StripeError};
-pub use stripe_service::StripeService;
 use tonic::Status;
+use uuid::Uuid;
+
+mod stripe_service;
+pub use stripe_service::StripeService;
+
+pub fn parse_uuid(uuid_string: &str, field: &str) -> Result<Uuid, Status> {
+    uuid_string.parse().map_err(|_| {
+        Status::invalid_argument(format!(
+            "field {field} is not a valid UUID v4"
+        ))
+    })
+}
 
 pub fn stripe_error_to_status(err: StripeError) -> Status {
     tracing::log::error!("{err}");

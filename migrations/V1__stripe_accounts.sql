@@ -1,0 +1,7 @@
+CREATE TABLE stripe_accounts (
+  stripe_account_id VARCHAR NOT NULL PRIMARY KEY,
+  market_booth_id UUID NOT NULL,
+  user_id VARCHAR NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() ON UPDATE NOW()
+);
