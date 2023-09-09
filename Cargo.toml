@@ -7,6 +7,7 @@ edition = "2021"
 async-stripe = { version = "0.22.2", default-features = false, features = [
   "runtime-tokio-hyper",
   "connect",
+  "checkout",
 ] }
 chrono = { version = "0.4.30", default-features = false, features = ["clock"] }
 deadpool-postgres = { version = "0.10.5", default-features = false, features = [

@@ -11,6 +11,7 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use payment::api::peoplesmarkets::commerce::v1::market_booth_service_client::MarketBoothServiceClient;
+use payment::api::peoplesmarkets::commerce::v1::offer_service_client::OfferServiceClient;
 use payment::api::peoplesmarkets::payment::v1::stripe_service_server::StripeServiceServer;
 use payment::{get_env_var, StripeService};
 
@@ -36,9 +37,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     migrate(&db_pool).await?;
 
     // initialize market booth service client
+    let commerce_service_url = get_env_var("COMMERCE_SERVICE_URL");
     let market_booth_service_client =
-        MarketBoothServiceClient::connect(get_env_var("COMMERCE_SERVICE_URL"))
-            .await?;
+        MarketBoothServiceClient::connect(commerce_service_url.clone()).await?;
+
+    // initialize offer service client
+    let offer_service_client =
+        OfferServiceClient::connect(commerce_service_url).await?;
 
     // initialize stripe client
     let stripe_client = Client::new(get_env_var("STRIPE_SECRET_KEY"));
@@ -81,6 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
         stripe_client,
         market_booth_service_client,
+        offer_service_client,
     );
 
     tracing::log::info!("gRPC+web server listening on {}", host);

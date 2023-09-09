@@ -4,21 +4,30 @@ use tonic::transport::Channel;
 
 use jwtk::jwk::RemoteJwksVerifier;
 use stripe::{
-    Account, AccountId, AccountLink, AccountLinkType, AccountType, Client,
-    CreateAccount, CreateAccountLink,
+    Account, AccountId, AccountLink, AccountLinkType, AccountType,
+    CheckoutSession, CheckoutSessionMode, Client, CreateAccount,
+    CreateAccountLink, CreateCheckoutSession, CreateCheckoutSessionLineItems,
+    CreateCheckoutSessionLineItemsAdjustableQuantity,
+    CreateCheckoutSessionLineItemsPriceData,
+    CreateCheckoutSessionLineItemsPriceDataProductData,
+    CreateCheckoutSessionPaymentIntentData, Currency as StripeCurrency,
 };
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::api::peoplesmarkets::commerce::v1::market_booth_service_client::MarketBoothServiceClient;
-use crate::api::peoplesmarkets::commerce::v1::GetMarketBoothRequest;
+use crate::api::peoplesmarkets::commerce::v1::offer_service_client::OfferServiceClient;
+use crate::api::peoplesmarkets::commerce::v1::{
+    Currency, GetMarketBoothRequest, GetOfferRequest,
+};
 use crate::api::peoplesmarkets::payment::v1::stripe_service_server::{
     self, StripeServiceServer,
 };
 use crate::api::peoplesmarkets::payment::v1::{
     CreateAccountLinkRequest, CreateAccountLinkResponse, CreateAccountRequest,
-    CreateAccountResponse, GetAccountDetailsRequest, GetAccountDetailsResponse,
-    GetAccountRequest, GetAccountResponse, StripeAccount as StripeAccountMsg,
-    StripeAccountDetails,
+    CreateAccountResponse, CreateCheckoutSessionRequest,
+    CreateCheckoutSessionResponse, GetAccountDetailsRequest,
+    GetAccountDetailsResponse, GetAccountRequest, GetAccountResponse,
+    StripeAccount as StripeAccountMsg, StripeAccountDetails,
 };
 use crate::auth::get_user_id;
 use crate::model::StripeAccount;
@@ -29,6 +38,7 @@ pub struct StripeService {
     verifier: RemoteJwksVerifier,
     stripe_client: Client,
     market_booth_service_client: MarketBoothServiceClient<Channel>,
+    offer_service_client: OfferServiceClient<Channel>,
 }
 
 impl StripeService {
@@ -37,12 +47,14 @@ impl StripeService {
         verifier: RemoteJwksVerifier,
         stripe_client: Client,
         market_booth_service_client: MarketBoothServiceClient<Channel>,
+        offer_service_client: OfferServiceClient<Channel>,
     ) -> Self {
         Self {
             pool,
             verifier,
             stripe_client,
             market_booth_service_client,
+            offer_service_client,
         }
     }
 
@@ -51,12 +63,14 @@ impl StripeService {
         verifier: RemoteJwksVerifier,
         stripe_client: Client,
         market_booth_service_client: MarketBoothServiceClient<Channel>,
+        offer_service_client: OfferServiceClient<Channel>,
     ) -> StripeServiceServer<Self> {
         StripeServiceServer::new(Self::new(
             pool,
             verifier,
             stripe_client,
             market_booth_service_client,
+            offer_service_client,
         ))
     }
 
@@ -69,6 +83,24 @@ impl StripeService {
             stripe_account_id: stripe_account.stripe_account_id,
             enabled,
         }
+    }
+
+    fn get_currency(currency: i32) -> Result<StripeCurrency, Status> {
+        let currency: Currency =
+            Currency::try_from(currency).map_err(|_| Status::internal(""))?;
+
+        match currency {
+            Currency::Unspecified => Err(Status::internal("")),
+            Currency::Eur => Ok(StripeCurrency::EUR),
+        }
+    }
+
+    fn calculate_fee_amount(
+        unit_amount: u32,
+        fee_pct: u32,
+        min_fee: u32,
+    ) -> i64 {
+        i64::from(((unit_amount * fee_pct) / 100).max(min_fee))
     }
 }
 
@@ -258,5 +290,117 @@ impl stripe_service_server::StripeService for StripeService {
                 details_submitted: account.details_submitted.unwrap_or(false),
             }),
         }))
+    }
+
+    async fn create_checkout_session(
+        &self,
+        request: Request<CreateCheckoutSessionRequest>,
+    ) -> Result<Response<CreateCheckoutSessionResponse>, Status> {
+        let CreateCheckoutSessionRequest {
+            offer_id,
+            success_url,
+            cancel_url,
+        } = request.into_inner();
+
+        let mut offer_service_client = self.offer_service_client.clone();
+        let mut market_booth_service_client =
+            self.market_booth_service_client.clone();
+
+        let found_offer = offer_service_client
+            .get_offer(Request::new(GetOfferRequest { offer_id }))
+            .await
+            .map_err(|_| Status::not_found(""))?
+            .into_inner()
+            .offer
+            .ok_or_else(|| Status::not_found(""))?;
+
+        let price = found_offer.price.ok_or_else(|| Status::internal(""))?;
+
+        let market_booth_uuid = parse_uuid(&found_offer.market_booth_id, "")?;
+
+        let found_market_booth = market_booth_service_client
+            .get_market_booth(Request::new(GetMarketBoothRequest {
+                market_booth_id: found_offer.market_booth_id,
+            }))
+            .await
+            .map_err(|_| Status::not_found("market_booth"))?
+            .into_inner()
+            .market_booth
+            .ok_or_else(|| Status::not_found("market_booth"))?;
+
+        let stripe_account = StripeAccount::get(&self.pool, &market_booth_uuid)
+            .await
+            .map_err(|_| Status::not_found(""))?
+            .ok_or_else(|| Status::not_found(""))?;
+
+        let stripe_account_id =
+            AccountId::from_str(&stripe_account.stripe_account_id)
+                .map_err(parse_id_error_to_status)?;
+
+        let product = CreateCheckoutSessionLineItemsPriceDataProductData {
+            name: found_offer.name,
+            description: (!found_offer.description.is_empty())
+                .then_some(found_offer.description),
+            images: (!found_offer.images.is_empty()).then_some(
+                found_offer
+                    .images
+                    .into_iter()
+                    .map(|i| i.image_url)
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+
+        let price_data = CreateCheckoutSessionLineItemsPriceData {
+            currency: Self::get_currency(price.currency)?,
+            product_data: Some(product),
+            unit_amount: Some(i64::from(price.unit_amont)),
+            ..Default::default()
+        };
+
+        let adjustable_quantity =
+            CreateCheckoutSessionLineItemsAdjustableQuantity {
+                enabled: true,
+                minimum: Some(1),
+                ..Default::default()
+            };
+
+        let line_items = vec![CreateCheckoutSessionLineItems {
+            quantity: Some(1),
+            adjustable_quantity: Some(adjustable_quantity),
+            price_data: Some(price_data),
+            ..Default::default()
+        }];
+
+        let payment_intent = CreateCheckoutSessionPaymentIntentData {
+            application_fee_amount: Some(Self::calculate_fee_amount(
+                price.unit_amont,
+                found_market_booth.platform_fee_percent,
+                found_market_booth.minimum_platform_fee_cent,
+            )),
+            ..Default::default()
+        };
+
+        let mut session = CreateCheckoutSession::new(&success_url);
+        session.cancel_url = Some(&cancel_url);
+        session.mode = Some(CheckoutSessionMode::Payment);
+        session.line_items = Some(line_items);
+        session.payment_intent_data = Some(payment_intent);
+
+        let stripe_client = self.stripe_client.clone();
+
+        let link = CheckoutSession::create(
+            &stripe_client.with_stripe_account(stripe_account_id),
+            session,
+        )
+        .await
+        .map_err(|err| {
+            tracing::log::error!("{err}");
+            Status::internal("")
+        })?
+        .url
+        .ok_or_else(|| Status::internal(""))?;
+
+        Ok(Response::new(CreateCheckoutSessionResponse { link }))
     }
 }
