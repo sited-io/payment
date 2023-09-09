@@ -302,6 +302,8 @@ impl stripe_service_server::StripeService for StripeService {
             cancel_url,
         } = request.into_inner();
 
+        tracing::log::debug!("CREATE CHECKOUT SESSION FOR {}", offer_id);
+
         let mut offer_service_client = self.offer_service_client.clone();
         let mut market_booth_service_client =
             self.market_booth_service_client.clone();
