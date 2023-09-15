@@ -53,6 +53,10 @@ job "payment" {
         env         = true
         change_mode = "restart"
         data        = <<EOF
+{{ with nomadVar "nomad/jobs/payment" }}
+RUST_LOG='{{ .LOG_LEVEL }}'
+{{ end }}
+
 HOST='0.0.0.0:{{ env "NOMAD_PORT_grpc" }}'
 
 DB_HOST='{{ env "NOMAD_UPSTREAM_IP_cockroach-sql" }}'
@@ -69,10 +73,6 @@ JWKS_HOST='{{ .JWKS_HOST }}'
 JWKS_URL='http://{{ env "NOMAD_UPSTREAM_ADDR_zitadel" }}/oauth/v2/keys'
 
 COMMERCE_SERVICE_URL='http://{{ env "NOMAD_UPSTREAM_ADDR_commerce-api" }}'
-
-{{ with nomadVar "nomad/jobs/payment" }}
-RUST_LOG='{{ .LOG_LEVEL }}'
-{{ end }}
 
 {{ with secret "kv2/data/services/payment" }}
 STRIPE_SECRET_KEY='{{ .Data.data.STRIPE_SECRET_KEY }}'

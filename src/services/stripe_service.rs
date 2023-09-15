@@ -1,6 +1,5 @@
 use deadpool_postgres::Pool;
 use std::str::FromStr;
-use tonic::transport::Channel;
 
 use jwtk::jwk::RemoteJwksVerifier;
 use stripe::{
@@ -10,14 +9,14 @@ use stripe::{
     CreateCheckoutSessionLineItemsAdjustableQuantity,
     CreateCheckoutSessionLineItemsPriceData,
     CreateCheckoutSessionLineItemsPriceDataProductData,
+    CreateCheckoutSessionLineItemsPriceDataRecurring,
+    CreateCheckoutSessionLineItemsPriceDataRecurringInterval,
     CreateCheckoutSessionPaymentIntentData, Currency as StripeCurrency,
 };
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::api::peoplesmarkets::commerce::v1::market_booth_service_client::MarketBoothServiceClient;
-use crate::api::peoplesmarkets::commerce::v1::offer_service_client::OfferServiceClient;
 use crate::api::peoplesmarkets::commerce::v1::{
-    Currency, GetMarketBoothRequest, GetOfferRequest,
+    Currency, PriceType, RecurringInterval,
 };
 use crate::api::peoplesmarkets::payment::v1::stripe_service_server::{
     self, StripeServiceServer,
@@ -31,14 +30,16 @@ use crate::api::peoplesmarkets::payment::v1::{
 };
 use crate::auth::get_user_id;
 use crate::model::StripeAccount;
-use crate::{parse_id_error_to_status, parse_uuid, stripe_error_to_status};
+use crate::{
+    parse_id_error_to_status, parse_uuid, stripe_error_to_status,
+    CommerceService,
+};
 
 pub struct StripeService {
     pool: Pool,
     verifier: RemoteJwksVerifier,
     stripe_client: Client,
-    market_booth_service_client: MarketBoothServiceClient<Channel>,
-    offer_service_client: OfferServiceClient<Channel>,
+    commerce_service: CommerceService,
 }
 
 impl StripeService {
@@ -46,15 +47,13 @@ impl StripeService {
         pool: Pool,
         verifier: RemoteJwksVerifier,
         stripe_client: Client,
-        market_booth_service_client: MarketBoothServiceClient<Channel>,
-        offer_service_client: OfferServiceClient<Channel>,
+        commerce_service: CommerceService,
     ) -> Self {
         Self {
             pool,
             verifier,
             stripe_client,
-            market_booth_service_client,
-            offer_service_client,
+            commerce_service,
         }
     }
 
@@ -62,15 +61,13 @@ impl StripeService {
         pool: Pool,
         verifier: RemoteJwksVerifier,
         stripe_client: Client,
-        market_booth_service_client: MarketBoothServiceClient<Channel>,
-        offer_service_client: OfferServiceClient<Channel>,
+        commerce_service: CommerceService,
     ) -> StripeServiceServer<Self> {
         StripeServiceServer::new(Self::new(
             pool,
             verifier,
             stripe_client,
-            market_booth_service_client,
-            offer_service_client,
+            commerce_service,
         ))
     }
 
@@ -102,6 +99,31 @@ impl StripeService {
     ) -> i64 {
         i64::from(((unit_amount * fee_pct) / 100).max(min_fee))
     }
+
+    fn get_recurring_interval(
+        interval: RecurringInterval,
+    ) -> Result<CreateCheckoutSessionLineItemsPriceDataRecurringInterval, Status>
+    {
+        use CreateCheckoutSessionLineItemsPriceDataRecurringInterval::*;
+
+        match interval {
+            RecurringInterval::Unspecified => Err(Status::internal("")),
+            RecurringInterval::Day => Ok(Day),
+            RecurringInterval::Week => Ok(Week),
+            RecurringInterval::Month => Ok(Month),
+            RecurringInterval::Year => Ok(Year),
+        }
+    }
+
+    fn get_payment_mode(
+        price_type: PriceType,
+    ) -> Result<CheckoutSessionMode, Status> {
+        match price_type {
+            PriceType::Unspecified => Err(Status::internal("")),
+            PriceType::OneTime => Ok(CheckoutSessionMode::Payment),
+            PriceType::Recurring => Ok(CheckoutSessionMode::Subscription),
+        }
+    }
 }
 
 #[async_trait]
@@ -114,24 +136,12 @@ impl stripe_service_server::StripeService for StripeService {
 
         let CreateAccountRequest { market_booth_id } = request.into_inner();
 
-        let mut client = self.market_booth_service_client.clone();
-
         let market_booth_uuid =
             parse_uuid(&market_booth_id, "market_booth_id")?;
 
-        let found_market_booth = client
-            .get_market_booth(Request::new(GetMarketBoothRequest {
-                market_booth_id,
-            }))
-            .await
-            .map_err(|_| Status::not_found(""))?
-            .into_inner()
-            .market_booth
-            .ok_or_else(|| Status::not_found(""))?;
-
-        if found_market_booth.user_id != user_id {
-            return Err(Status::not_found(""));
-        }
+        self.commerce_service
+            .check_market_booth_and_owner(&market_booth_id, &user_id)
+            .await?;
 
         match StripeAccount::get_for_user(
             &self.pool,
@@ -302,38 +312,21 @@ impl stripe_service_server::StripeService for StripeService {
             cancel_url,
         } = request.into_inner();
 
-        tracing::log::debug!("CREATE CHECKOUT SESSION FOR {}", offer_id);
-
-        let mut offer_service_client = self.offer_service_client.clone();
-        let mut market_booth_service_client =
-            self.market_booth_service_client.clone();
-
-        let found_offer = offer_service_client
-            .get_offer(Request::new(GetOfferRequest { offer_id }))
-            .await
-            .map_err(|_| Status::not_found(""))?
-            .into_inner()
-            .offer
-            .ok_or_else(|| Status::not_found(""))?;
+        let found_offer = self.commerce_service.get_offer(&offer_id).await?;
 
         let price = found_offer.price.ok_or_else(|| Status::internal(""))?;
 
         let market_booth_uuid = parse_uuid(&found_offer.market_booth_id, "")?;
 
-        let found_market_booth = market_booth_service_client
-            .get_market_booth(Request::new(GetMarketBoothRequest {
-                market_booth_id: found_offer.market_booth_id,
-            }))
-            .await
-            .map_err(|_| Status::not_found("market_booth"))?
-            .into_inner()
-            .market_booth
-            .ok_or_else(|| Status::not_found("market_booth"))?;
-
         let stripe_account = StripeAccount::get(&self.pool, &market_booth_uuid)
             .await
             .map_err(|_| Status::not_found(""))?
             .ok_or_else(|| Status::not_found(""))?;
+
+        let found_market_booth = self
+            .commerce_service
+            .get_market_booth(&found_offer.market_booth_id)
+            .await?;
 
         let stripe_account_id =
             AccountId::from_str(&stripe_account.stripe_account_id)
@@ -353,10 +346,19 @@ impl stripe_service_server::StripeService for StripeService {
             ..Default::default()
         };
 
+        let recurring = match price.recurring.as_ref() {
+            Some(r) => Some(CreateCheckoutSessionLineItemsPriceDataRecurring {
+                interval: Self::get_recurring_interval(r.interval())?,
+                interval_count: Some(u64::from(r.interval_count)),
+            }),
+            None => None,
+        };
+
         let price_data = CreateCheckoutSessionLineItemsPriceData {
             currency: Self::get_currency(price.currency)?,
             product_data: Some(product),
-            unit_amount: Some(i64::from(price.unit_amont)),
+            unit_amount: Some(i64::from(price.unit_amount)),
+            recurring,
             ..Default::default()
         };
 
@@ -374,20 +376,23 @@ impl stripe_service_server::StripeService for StripeService {
             ..Default::default()
         }];
 
-        let payment_intent = CreateCheckoutSessionPaymentIntentData {
-            application_fee_amount: Some(Self::calculate_fee_amount(
-                price.unit_amont,
-                found_market_booth.platform_fee_percent,
-                found_market_booth.minimum_platform_fee_cent,
-            )),
-            ..Default::default()
-        };
-
         let mut session = CreateCheckoutSession::new(&success_url);
         session.cancel_url = Some(&cancel_url);
-        session.mode = Some(CheckoutSessionMode::Payment);
+        session.mode = Some(Self::get_payment_mode(price.price_type())?);
         session.line_items = Some(line_items);
-        session.payment_intent_data = Some(payment_intent);
+
+        if price.price_type() == PriceType::OneTime {
+            let payment_intent = CreateCheckoutSessionPaymentIntentData {
+                application_fee_amount: Some(Self::calculate_fee_amount(
+                    price.unit_amount,
+                    found_market_booth.platform_fee_percent,
+                    found_market_booth.minimum_platform_fee_cent,
+                )),
+                ..Default::default()
+            };
+
+            session.payment_intent_data = Some(payment_intent);
+        }
 
         let stripe_client = self.stripe_client.clone();
 

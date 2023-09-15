@@ -1,10 +1,12 @@
 pub mod api;
 mod auth;
+mod commerce;
 pub mod db;
 pub mod logging;
 mod model;
 mod services;
 
+pub use commerce::CommerceService;
 pub use services::*;
 
 pub fn get_env_var(var: &str) -> String {
