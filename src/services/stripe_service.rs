@@ -11,7 +11,8 @@ use stripe::{
     CreateCheckoutSessionLineItemsPriceDataProductData,
     CreateCheckoutSessionLineItemsPriceDataRecurring,
     CreateCheckoutSessionLineItemsPriceDataRecurringInterval,
-    CreateCheckoutSessionPaymentIntentData, Currency as StripeCurrency,
+    CreateCheckoutSessionPaymentIntentData,
+    CreateCheckoutSessionSubscriptionData, Currency as StripeCurrency,
 };
 use tonic::{async_trait, Request, Response, Status};
 
@@ -112,16 +113,6 @@ impl StripeService {
             RecurringInterval::Week => Ok(Week),
             RecurringInterval::Month => Ok(Month),
             RecurringInterval::Year => Ok(Year),
-        }
-    }
-
-    fn get_payment_mode(
-        price_type: PriceType,
-    ) -> Result<CheckoutSessionMode, Status> {
-        match price_type {
-            PriceType::Unspecified => Err(Status::internal("")),
-            PriceType::OneTime => Ok(CheckoutSessionMode::Payment),
-            PriceType::Recurring => Ok(CheckoutSessionMode::Subscription),
         }
     }
 }
@@ -332,6 +323,38 @@ impl stripe_service_server::StripeService for StripeService {
             AccountId::from_str(&stripe_account.stripe_account_id)
                 .map_err(parse_id_error_to_status)?;
 
+        // create checkout session request
+        let mut checkout_session = CreateCheckoutSession::new(&success_url);
+        checkout_session.cancel_url = Some(&cancel_url);
+
+        match price.price_type() {
+            PriceType::Unspecified => return Err(Status::internal("")),
+            PriceType::OneTime => {
+                checkout_session.mode = Some(CheckoutSessionMode::Payment);
+                checkout_session.payment_intent_data =
+                    Some(CreateCheckoutSessionPaymentIntentData {
+                        application_fee_amount: Some(
+                            Self::calculate_fee_amount(
+                                price.unit_amount,
+                                found_market_booth.platform_fee_percent,
+                                found_market_booth.minimum_platform_fee_cent,
+                            ),
+                        ),
+                        ..Default::default()
+                    });
+            }
+            PriceType::Recurring => {
+                checkout_session.mode = Some(CheckoutSessionMode::Subscription);
+                checkout_session.subscription_data =
+                    Some(CreateCheckoutSessionSubscriptionData {
+                        application_fee_percent: Some(f64::from(
+                            found_market_booth.platform_fee_percent,
+                        )),
+                        ..Default::default()
+                    })
+            }
+        }
+
         let product = CreateCheckoutSessionLineItemsPriceDataProductData {
             name: found_offer.name,
             description: (!found_offer.description.is_empty())
@@ -376,29 +399,13 @@ impl stripe_service_server::StripeService for StripeService {
             ..Default::default()
         }];
 
-        let mut session = CreateCheckoutSession::new(&success_url);
-        session.cancel_url = Some(&cancel_url);
-        session.mode = Some(Self::get_payment_mode(price.price_type())?);
-        session.line_items = Some(line_items);
-
-        if price.price_type() == PriceType::OneTime {
-            let payment_intent = CreateCheckoutSessionPaymentIntentData {
-                application_fee_amount: Some(Self::calculate_fee_amount(
-                    price.unit_amount,
-                    found_market_booth.platform_fee_percent,
-                    found_market_booth.minimum_platform_fee_cent,
-                )),
-                ..Default::default()
-            };
-
-            session.payment_intent_data = Some(payment_intent);
-        }
+        checkout_session.line_items = Some(line_items);
 
         let stripe_client = self.stripe_client.clone();
 
         let link = CheckoutSession::create(
             &stripe_client.with_stripe_account(stripe_account_id),
-            session,
+            checkout_session,
         )
         .await
         .map_err(|err| {
