@@ -170,6 +170,28 @@ pub struct CompleteMultipartUploadRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompleteMultipartUploadResponse {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddMediaToOfferRequest {
+    #[prost(string, tag = "1")]
+    pub media_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub offer_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddMediaToOfferResponse {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RemoveMediaFromOfferRequest {
+    #[prost(string, tag = "1")]
+    pub media_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub offer_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RemoveMediaFromOfferResponse {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum MediaOrderByField {
@@ -204,6 +226,7 @@ impl MediaOrderByField {
 pub enum MediaFilterField {
     Unspecified = 0,
     Name = 1,
+    OfferId = 2,
 }
 impl MediaFilterField {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -214,6 +237,7 @@ impl MediaFilterField {
         match self {
             MediaFilterField::Unspecified => "MEDIA_FILTER_FIELD_UNSPECIFIED",
             MediaFilterField::Name => "MEDIA_FILTER_FIELD_NAME",
+            MediaFilterField::OfferId => "MEDIA_FILTER_FIELD_OFFER_ID",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -221,6 +245,7 @@ impl MediaFilterField {
         match value {
             "MEDIA_FILTER_FIELD_UNSPECIFIED" => Some(Self::Unspecified),
             "MEDIA_FILTER_FIELD_NAME" => Some(Self::Name),
+            "MEDIA_FILTER_FIELD_OFFER_ID" => Some(Self::OfferId),
             _ => None,
         }
     }
@@ -540,6 +565,66 @@ pub mod media_service_client {
                     GrpcMethod::new(
                         "peoplesmarkets.media.v1.MediaService",
                         "CompleteMultipartUpload",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn add_media_to_offer(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AddMediaToOfferRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AddMediaToOfferResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/peoplesmarkets.media.v1.MediaService/AddMediaToOffer",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "peoplesmarkets.media.v1.MediaService",
+                        "AddMediaToOffer",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_media_from_offer(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveMediaFromOfferRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveMediaFromOfferResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/peoplesmarkets.media.v1.MediaService/RemoveMediaFromOffer",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "peoplesmarkets.media.v1.MediaService",
+                        "RemoveMediaFromOffer",
                     ),
                 );
             self.inner.unary(req, path, codec).await

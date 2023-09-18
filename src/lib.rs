@@ -1,11 +1,13 @@
-pub mod api;
 mod auth;
 mod commerce;
-pub mod db;
-pub mod logging;
 mod model;
 mod services;
 
+pub mod api;
+pub mod db;
+pub mod logging;
+
+pub use auth::init_jwks_verifier;
 pub use commerce::CommerceService;
 pub use services::*;
 

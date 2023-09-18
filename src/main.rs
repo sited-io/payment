@@ -1,8 +1,5 @@
-use std::time::Duration;
-
 use http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use http::{HeaderName, Method};
-use jwtk::jwk::RemoteJwksVerifier;
 use stripe::Client;
 use tonic::transport::Server;
 use tower_http::cors::{AllowOrigin, CorsLayer};
@@ -11,7 +8,9 @@ use tower_http::trace::TraceLayer;
 use payment::api::peoplesmarkets::payment::v1::stripe_service_server::StripeServiceServer;
 use payment::db::{init_db_pool, migrate};
 use payment::logging::{LogOnFailure, LogOnRequest, LogOnResponse};
-use payment::{get_env_var, CommerceService, StripeService};
+use payment::{
+    get_env_var, init_jwks_verifier, CommerceService, StripeService,
+};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,9 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // get required environment variables
     let host = get_env_var("HOST");
-
-    let jwks_url = get_env_var("JWKS_URL");
     let jwks_host = get_env_var("JWKS_HOST");
+    let jwks_url = get_env_var("JWKS_URL");
 
     // initialize database connection and migrate
     let db_pool = init_db_pool(
@@ -40,17 +38,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initialize commerce service client
     let commerce_service =
         CommerceService::init(get_env_var("COMMERCE_SERVICE_URL")).await?;
-
-    // initialize client for JWT verification against public JWKS
-    //   adding host header in order to work in private network
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        reqwest::header::HOST,
-        reqwest::header::HeaderValue::from_str(&jwks_host)?,
-    );
-    let client = reqwest::Client::builder()
-        .default_headers(headers)
-        .build()?;
 
     // configure gRPC health reporter
     let (mut health_reporter, health_service) =
@@ -70,13 +57,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .unwrap();
 
+    // initialize grpc services
     let stripe_service = StripeService::build(
         db_pool,
-        RemoteJwksVerifier::new(
-            jwks_url,
-            Some(client),
-            Duration::from_secs(120),
-        ),
+        init_jwks_verifier(jwks_host, jwks_url)?,
         stripe_client,
         commerce_service,
     );

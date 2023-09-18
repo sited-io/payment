@@ -1,4 +1,5 @@
 use deadpool_postgres::Pool;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use jwtk::jwk::RemoteJwksVerifier;
@@ -17,7 +18,7 @@ use stripe::{
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::api::peoplesmarkets::commerce::v1::{
-    Currency, PriceType, RecurringInterval,
+    Currency, OfferType, PriceType, RecurringInterval,
 };
 use crate::api::peoplesmarkets::payment::v1::stripe_service_server::{
     self, StripeServiceServer,
@@ -44,6 +45,14 @@ pub struct StripeService {
 }
 
 impl StripeService {
+    fn metadata_key_user_id() -> String {
+        String::from("user_id")
+    }
+
+    fn metadata_key_offer_id() -> String {
+        String::from("offer_id")
+    }
+
     fn new(
         pool: Pool,
         verifier: RemoteJwksVerifier,
@@ -297,6 +306,9 @@ impl stripe_service_server::StripeService for StripeService {
         &self,
         request: Request<CreateCheckoutSessionRequest>,
     ) -> Result<Response<CreateCheckoutSessionResponse>, Status> {
+        let user_id =
+            get_user_id(request.metadata(), &self.verifier).await.ok();
+
         let CreateCheckoutSessionRequest {
             offer_id,
             success_url,
@@ -305,7 +317,10 @@ impl stripe_service_server::StripeService for StripeService {
 
         let found_offer = self.commerce_service.get_offer(&offer_id).await?;
 
-        let price = found_offer.price.ok_or_else(|| Status::internal(""))?;
+        let price = found_offer
+            .price
+            .as_ref()
+            .ok_or_else(|| Status::internal(""))?;
 
         let market_booth_uuid = parse_uuid(&found_offer.market_booth_id, "")?;
 
@@ -327,6 +342,13 @@ impl stripe_service_server::StripeService for StripeService {
         let mut checkout_session = CreateCheckoutSession::new(&success_url);
         checkout_session.cancel_url = Some(&cancel_url);
 
+        // adding offer_id to metadata of stripe checkout session
+        // this is used in stripe webhook handler to assign payments to offers
+        let mut metadata = HashMap::from([(
+            Self::metadata_key_offer_id(),
+            found_offer.offer_id.to_string(),
+        )]);
+
         match price.price_type() {
             PriceType::Unspecified => return Err(Status::internal("")),
             PriceType::OneTime => {
@@ -344,6 +366,16 @@ impl stripe_service_server::StripeService for StripeService {
                     });
             }
             PriceType::Recurring => {
+                // If subscription and the offer is digital we need to provide the
+                // user_id to the payment in order to assing ownership of the product to the user
+                if found_offer.r#type() == OfferType::Digital {
+                    if let Some(user_id) = user_id {
+                        metadata.insert(Self::metadata_key_user_id(), user_id);
+                    } else {
+                        return Err(Status::unauthenticated(""));
+                    }
+                }
+
                 checkout_session.mode = Some(CheckoutSessionMode::Subscription);
                 checkout_session.subscription_data =
                     Some(CreateCheckoutSessionSubscriptionData {
@@ -351,7 +383,7 @@ impl stripe_service_server::StripeService for StripeService {
                             found_market_booth.platform_fee_percent,
                         )),
                         ..Default::default()
-                    })
+                    });
             }
         }
 
@@ -400,6 +432,8 @@ impl stripe_service_server::StripeService for StripeService {
         }];
 
         checkout_session.line_items = Some(line_items);
+
+        checkout_session.metadata = Some(metadata);
 
         let stripe_client = self.stripe_client.clone();
 
