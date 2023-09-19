@@ -28,7 +28,7 @@ impl DbError {
                 if *err.code() == SqlState::SYNTAX_ERROR
                     && err.routine() == Some("toTSQuery")
                 {
-                    tracing::log::warn!("{:?}", err);
+                    tracing::log::warn!("{err:?}");
                     return Ok(default);
                 }
             }
@@ -79,7 +79,8 @@ impl From<DbError> for Status {
                             Status::failed_precondition(err.message())
                         }
                         _ => {
-                            todo!("{err:?}")
+                            tracing::log::error!("{err:?}");
+                            Status::internal("")
                         }
                     }
                 } else {
@@ -88,13 +89,16 @@ impl From<DbError> for Status {
                 }
             }
             DbError::Pool(pool_err) => {
-                todo!("{pool_err:?}");
+                tracing::log::error!("{pool_err:?}");
+                Status::internal("")
             }
             DbError::CreatePool(create_pool_err) => {
-                todo!("{create_pool_err:?}");
+                tracing::log::error!("{create_pool_err:?}");
+                Status::internal("")
             }
             DbError::SeaQuery(sea_query_err) => {
-                todo!("{sea_query_err:?}");
+                tracing::log::error!("{sea_query_err:?}");
+                Status::internal("")
             }
         }
     }

@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initialize grpc services
     let stripe_service = StripeService::build(
         db_pool,
-        init_jwks_verifier(jwks_host, jwks_url)?,
+        init_jwks_verifier(&jwks_host, &jwks_url)?,
         stripe_client,
         commerce_service,
     );
