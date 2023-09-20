@@ -105,9 +105,25 @@ impl StripeService {
     fn calculate_fee_amount(
         unit_amount: u32,
         fee_pct: u32,
-        min_fee: u32,
+        min_fee_amount: u32,
     ) -> i64 {
-        i64::from(((unit_amount * fee_pct) / 100).max(min_fee))
+        i64::from(((unit_amount * fee_pct) / 100).max(min_fee_amount))
+    }
+
+    fn calculate_fee_percent(
+        unit_amount: u32,
+        fee_pct: u32,
+        min_fee_amount: u32,
+    ) -> f64 {
+        let fee_amount = (unit_amount * fee_pct) / 100;
+        if fee_amount < min_fee_amount {
+            let fee_percent =
+                f64::from(min_fee_amount * 100) / f64::from(unit_amount);
+            // rouds f64 to second decimal
+            (fee_percent * 100.0).round() / 100.0
+        } else {
+            f64::from(fee_pct)
+        }
     }
 
     fn get_recurring_interval(
@@ -379,9 +395,13 @@ impl stripe_service_server::StripeService for StripeService {
                 checkout_session.mode = Some(CheckoutSessionMode::Subscription);
                 checkout_session.subscription_data =
                     Some(CreateCheckoutSessionSubscriptionData {
-                        application_fee_percent: Some(f64::from(
-                            found_market_booth.platform_fee_percent,
-                        )),
+                        application_fee_percent: Some(
+                            Self::calculate_fee_percent(
+                                price.unit_amount,
+                                found_market_booth.platform_fee_percent,
+                                found_market_booth.minimum_platform_fee_cent,
+                            ),
+                        ),
                         ..Default::default()
                     });
             }
@@ -450,5 +470,28 @@ impl stripe_service_server::StripeService for StripeService {
         .ok_or_else(|| Status::internal(""))?;
 
         Ok(Response::new(CreateCheckoutSessionResponse { link }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_fee_amount() {
+        assert_eq!(StripeService::calculate_fee_amount(588, 2, 50), 50);
+        assert_eq!(StripeService::calculate_fee_amount(1499, 2, 50), 50);
+        assert_eq!(StripeService::calculate_fee_amount(5000, 2, 50), 100);
+        assert_eq!(StripeService::calculate_fee_amount(4444, 2, 50), 88);
+        assert_eq!(StripeService::calculate_fee_amount(4444, 3, 50), 133);
+    }
+
+    #[test]
+    fn test_calculate_fee_percent() {
+        assert_eq!(StripeService::calculate_fee_percent(588, 2, 50), 8.50);
+        assert_eq!(StripeService::calculate_fee_percent(1499, 2, 50), 3.34);
+        assert_eq!(StripeService::calculate_fee_percent(5000, 2, 50), 2.00);
+        assert_eq!(StripeService::calculate_fee_percent(4444, 2, 50), 2.00);
+        assert_eq!(StripeService::calculate_fee_percent(4444, 3, 50), 3.00);
     }
 }
