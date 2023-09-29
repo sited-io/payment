@@ -12,7 +12,7 @@ use crate::db::DbError;
 pub enum StripeAccountIden {
     Table,
     StripeAccountId,
-    MarketBoothId,
+    ShopId,
     UserId,
     CreatedAt,
     UpdatedAt,
@@ -20,7 +20,7 @@ pub enum StripeAccountIden {
 
 pub struct StripeAccount {
     pub stripe_account_id: String,
-    pub market_booth_id: Uuid,
+    pub shop_id: Uuid,
     pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -29,7 +29,7 @@ pub struct StripeAccount {
 impl StripeAccount {
     pub async fn create(
         pool: &Pool,
-        market_booth_id: &Uuid,
+        shop_id: &Uuid,
         stripe_account_id: &String,
         user_id: &String,
     ) -> Result<Self, DbError> {
@@ -38,12 +38,12 @@ impl StripeAccount {
         let (sql, values) = Query::insert()
             .into_table(StripeAccountIden::Table)
             .columns([
-                StripeAccountIden::MarketBoothId,
+                StripeAccountIden::ShopId,
                 StripeAccountIden::StripeAccountId,
                 StripeAccountIden::UserId,
             ])
             .values([
-                (*market_booth_id).into(),
+                (*shop_id).into(),
                 stripe_account_id.into(),
                 user_id.into(),
             ])?
@@ -57,17 +57,14 @@ impl StripeAccount {
 
     pub async fn get(
         pool: &Pool,
-        market_booth_id: &Uuid,
+        shop_id: &Uuid,
     ) -> Result<Option<Self>, DbError> {
         let client = pool.get().await?;
 
         let (sql, values) = Query::select()
             .column(Asterisk)
             .from(StripeAccountIden::Table)
-            .and_where(
-                Expr::col(StripeAccountIden::MarketBoothId)
-                    .eq(*market_booth_id),
-            )
+            .and_where(Expr::col(StripeAccountIden::ShopId).eq(*shop_id))
             .build_postgres(PostgresQueryBuilder);
 
         Ok(client
@@ -78,7 +75,7 @@ impl StripeAccount {
 
     pub async fn get_for_user(
         pool: &Pool,
-        market_booth_id: &Uuid,
+        shop_id: &Uuid,
         user_id: &String,
     ) -> Result<Option<Self>, DbError> {
         let client = pool.get().await?;
@@ -86,10 +83,7 @@ impl StripeAccount {
         let (sql, values) = Query::select()
             .column(Asterisk)
             .from(StripeAccountIden::Table)
-            .and_where(
-                Expr::col(StripeAccountIden::MarketBoothId)
-                    .eq(*market_booth_id),
-            )
+            .and_where(Expr::col(StripeAccountIden::ShopId).eq(*shop_id))
             .and_where(Expr::col(StripeAccountIden::UserId).eq(user_id))
             .build_postgres(PostgresQueryBuilder);
 
@@ -105,8 +99,7 @@ impl From<&Row> for StripeAccount {
         Self {
             stripe_account_id: row
                 .get(StripeAccountIden::StripeAccountId.to_string().as_str()),
-            market_booth_id: row
-                .get(StripeAccountIden::MarketBoothId.to_string().as_str()),
+            shop_id: row.get(StripeAccountIden::ShopId.to_string().as_str()),
             user_id: row.get(StripeAccountIden::UserId.to_string().as_str()),
             created_at: row
                 .get(StripeAccountIden::CreatedAt.to_string().as_str()),

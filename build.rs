@@ -5,7 +5,7 @@ fn main() -> Result<()> {
         &["service-apis/proto/peoplesmarkets/payment/v1/stripe.proto"];
 
     const COMMERCE_PROTOS: &[&str] = &[
-        "service-apis/proto/peoplesmarkets/commerce/v1/market_booth.proto",
+        "service-apis/proto/peoplesmarkets/commerce/v1/shop.proto",
         "service-apis/proto/peoplesmarkets/commerce/v1/offer.proto",
     ];
 

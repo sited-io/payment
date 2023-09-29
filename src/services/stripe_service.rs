@@ -86,7 +86,7 @@ impl StripeService {
         enabled: bool,
     ) -> StripeAccountMsg {
         StripeAccountMsg {
-            market_booth_id: stripe_account.market_booth_id.to_string(),
+            shop_id: stripe_account.shop_id.to_string(),
             stripe_account_id: stripe_account.stripe_account_id,
             enabled,
         }
@@ -150,13 +150,12 @@ impl stripe_service_server::StripeService for StripeService {
     ) -> Result<Response<CreateAccountResponse>, Status> {
         let user_id = get_user_id(request.metadata(), &self.verifier).await?;
 
-        let CreateAccountRequest { market_booth_id } = request.into_inner();
+        let CreateAccountRequest { shop_id } = request.into_inner();
 
-        let market_booth_uuid =
-            parse_uuid(&market_booth_id, "market_booth_id")?;
+        let market_booth_uuid = parse_uuid(&shop_id, "shop_id")?;
 
         self.commerce_service
-            .check_market_booth_and_owner(&market_booth_id, &user_id)
+            .check_market_booth_and_owner(&shop_id, &user_id)
             .await?;
 
         match StripeAccount::get_for_user(
@@ -219,15 +218,15 @@ impl stripe_service_server::StripeService for StripeService {
         let user_id = get_user_id(request.metadata(), &self.verifier).await?;
 
         let CreateAccountLinkRequest {
-            market_booth_id,
+            shop_id,
             refresh_url,
             return_url,
         } = request.into_inner();
 
-        let market_booth_id = parse_uuid(&market_booth_id, "market_booth_id")?;
+        let shop_id = parse_uuid(&shop_id, "shop_id")?;
 
         let found_stripe_account =
-            StripeAccount::get_for_user(&self.pool, &market_booth_id, &user_id)
+            StripeAccount::get_for_user(&self.pool, &shop_id, &user_id)
                 .await?
                 .ok_or(Status::not_found(""))?;
 
@@ -256,14 +255,13 @@ impl stripe_service_server::StripeService for StripeService {
         &self,
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountResponse>, Status> {
-        let GetAccountRequest { market_booth_id } = request.into_inner();
+        let GetAccountRequest { shop_id } = request.into_inner();
 
-        let market_booth_id = parse_uuid(&market_booth_id, "market_booth_id")?;
+        let shop_id = parse_uuid(&shop_id, "shop_id")?;
 
-        let found_stripe_account =
-            StripeAccount::get(&self.pool, &market_booth_id)
-                .await?
-                .ok_or(Status::not_found(""))?;
+        let found_stripe_account = StripeAccount::get(&self.pool, &shop_id)
+            .await?
+            .ok_or(Status::not_found(""))?;
 
         let account = Account::retrieve(
             &self.stripe_client,
@@ -288,12 +286,12 @@ impl stripe_service_server::StripeService for StripeService {
     ) -> Result<Response<GetAccountDetailsResponse>, Status> {
         let user_id = get_user_id(request.metadata(), &self.verifier).await?;
 
-        let GetAccountDetailsRequest { market_booth_id } = request.into_inner();
+        let GetAccountDetailsRequest { shop_id } = request.into_inner();
 
-        let market_booth_id = parse_uuid(&market_booth_id, "market_booth_id")?;
+        let shop_id = parse_uuid(&shop_id, "shop_id")?;
 
         let found_stripe_account =
-            StripeAccount::get_for_user(&self.pool, &market_booth_id, &user_id)
+            StripeAccount::get_for_user(&self.pool, &shop_id, &user_id)
                 .await?
                 .ok_or(Status::not_found(""))?;
 
@@ -338,7 +336,7 @@ impl stripe_service_server::StripeService for StripeService {
             .as_ref()
             .ok_or_else(|| Status::internal(""))?;
 
-        let market_booth_uuid = parse_uuid(&found_offer.market_booth_id, "")?;
+        let market_booth_uuid = parse_uuid(&found_offer.shop_id, "")?;
 
         let stripe_account = StripeAccount::get(&self.pool, &market_booth_uuid)
             .await
@@ -347,7 +345,7 @@ impl stripe_service_server::StripeService for StripeService {
 
         let found_market_booth = self
             .commerce_service
-            .get_market_booth(&found_offer.market_booth_id)
+            .get_market_booth(&found_offer.shop_id)
             .await?;
 
         let stripe_account_id =

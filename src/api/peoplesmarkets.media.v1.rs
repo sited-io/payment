@@ -6,7 +6,7 @@ pub struct MediaResponse {
     #[prost(string, repeated, tag = "2")]
     pub offer_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "3")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub user_id: ::prost::alloc::string::String,
     #[prost(int64, tag = "5")]
@@ -15,8 +15,6 @@ pub struct MediaResponse {
     pub updated_at: i64,
     #[prost(string, tag = "7")]
     pub name: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", optional, tag = "8")]
-    pub data: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -30,7 +28,7 @@ pub struct MediaUpload {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateMediaRequest {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
@@ -56,6 +54,18 @@ pub struct GetMediaResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DownloadMediaRequest {
+    #[prost(string, tag = "1")]
+    pub media_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DownloadMediaResponse {
+    #[prost(string, tag = "1")]
+    pub download_url: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MediaOrderBy {
     #[prost(enumeration = "MediaOrderByField", tag = "1")]
     pub field: i32,
@@ -74,7 +84,7 @@ pub struct MediaFilter {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListMediaRequest {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::pagination::v1::Pagination>,
     #[prost(message, optional, tag = "3")]
@@ -85,6 +95,24 @@ pub struct ListMediaRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListMediaResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub medias: ::prost::alloc::vec::Vec<MediaResponse>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::pagination::v1::Pagination>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAccessibleMediaRequest {
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::pagination::v1::Pagination>,
+    #[prost(message, optional, tag = "3")]
+    pub order_by: ::core::option::Option<MediaOrderBy>,
+    #[prost(message, optional, tag = "4")]
+    pub filter: ::core::option::Option<MediaFilter>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAccessibleMediaResponse {
     #[prost(message, repeated, tag = "1")]
     pub medias: ::prost::alloc::vec::Vec<MediaResponse>,
     #[prost(message, optional, tag = "2")]
@@ -392,6 +420,36 @@ pub mod media_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn download_media(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DownloadMediaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DownloadMediaResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/peoplesmarkets.media.v1.MediaService/DownloadMedia",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "peoplesmarkets.media.v1.MediaService",
+                        "DownloadMedia",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn list_media(
             &mut self,
             request: impl tonic::IntoRequest<super::ListMediaRequest>,
@@ -416,6 +474,36 @@ pub mod media_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("peoplesmarkets.media.v1.MediaService", "ListMedia"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_accessible_media(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAccessibleMediaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAccessibleMediaResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/peoplesmarkets.media.v1.MediaService/ListAccessibleMedia",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "peoplesmarkets.media.v1.MediaService",
+                        "ListAccessibleMedia",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }

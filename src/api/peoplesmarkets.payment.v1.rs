@@ -2,7 +2,7 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StripeAccount {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub stripe_account_id: ::prost::alloc::string::String,
     #[prost(bool, tag = "3")]
@@ -20,7 +20,7 @@ pub struct StripeAccountDetails {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateAccountRequest {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -32,7 +32,7 @@ pub struct CreateAccountResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateAccountLinkRequest {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub refresh_url: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
@@ -48,7 +48,7 @@ pub struct CreateAccountLinkResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountRequest {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -60,7 +60,7 @@ pub struct GetAccountResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountDetailsRequest {
     #[prost(string, tag = "1")]
-    pub market_booth_id: ::prost::alloc::string::String,
+    pub shop_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
