@@ -8,24 +8,23 @@ use crate::api::peoplesmarkets::commerce::v1::{
 };
 
 pub struct CommerceService {
-    market_booth_client: ShopServiceClient<Channel>,
+    shop_client: ShopServiceClient<Channel>,
     offer_client: OfferServiceClient<Channel>,
 }
 
 impl CommerceService {
     pub async fn init(url: String) -> Result<Self, tonic::transport::Error> {
         Ok(Self {
-            market_booth_client: ShopServiceClient::connect(url.clone())
-                .await?,
+            shop_client: ShopServiceClient::connect(url.clone()).await?,
             offer_client: OfferServiceClient::connect(url).await?,
         })
     }
 
-    pub async fn get_market_booth(
+    pub async fn get_shop(
         &self,
         shop_id: &String,
     ) -> Result<ShopResponse, Status> {
-        let mut client = self.market_booth_client.clone();
+        let mut client = self.shop_client.clone();
 
         client
             .get_shop(Request::new(GetShopRequest {
@@ -56,17 +55,17 @@ impl CommerceService {
             .ok_or_else(|| Status::not_found(""))
     }
 
-    pub async fn check_market_booth_and_owner(
+    pub async fn check_shop_and_owner(
         &self,
         shop_id: &String,
         user_id: &String,
     ) -> Result<(), Status> {
-        let market_booth = self.get_market_booth(shop_id).await?;
+        let shop = self.get_shop(shop_id).await?;
 
-        if market_booth.user_id == *user_id {
+        if shop.user_id == *user_id {
             Ok(())
         } else {
-            Err(Status::not_found("market_booth"))
+            Err(Status::not_found("shop"))
         }
     }
 }

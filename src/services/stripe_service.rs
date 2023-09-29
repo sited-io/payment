@@ -152,18 +152,14 @@ impl stripe_service_server::StripeService for StripeService {
 
         let CreateAccountRequest { shop_id } = request.into_inner();
 
-        let market_booth_uuid = parse_uuid(&shop_id, "shop_id")?;
+        let shop_uuid = parse_uuid(&shop_id, "shop_id")?;
 
         self.commerce_service
-            .check_market_booth_and_owner(&shop_id, &user_id)
+            .check_shop_and_owner(&shop_id, &user_id)
             .await?;
 
-        match StripeAccount::get_for_user(
-            &self.pool,
-            &market_booth_uuid,
-            &user_id,
-        )
-        .await?
+        match StripeAccount::get_for_user(&self.pool, &shop_uuid, &user_id)
+            .await?
         {
             Some(stripe_account) => {
                 let account = Account::retrieve(
@@ -195,7 +191,7 @@ impl stripe_service_server::StripeService for StripeService {
 
                 let created_stripe_account = StripeAccount::create(
                     &self.pool,
-                    &market_booth_uuid,
+                    &shop_uuid,
                     &account.id.to_string(),
                     &user_id,
                 )
@@ -336,17 +332,15 @@ impl stripe_service_server::StripeService for StripeService {
             .as_ref()
             .ok_or_else(|| Status::internal(""))?;
 
-        let market_booth_uuid = parse_uuid(&found_offer.shop_id, "")?;
+        let shop_uuid = parse_uuid(&found_offer.shop_id, "")?;
 
-        let stripe_account = StripeAccount::get(&self.pool, &market_booth_uuid)
+        let stripe_account = StripeAccount::get(&self.pool, &shop_uuid)
             .await
             .map_err(|_| Status::not_found(""))?
             .ok_or_else(|| Status::not_found(""))?;
 
-        let found_market_booth = self
-            .commerce_service
-            .get_market_booth(&found_offer.shop_id)
-            .await?;
+        let found_shop =
+            self.commerce_service.get_shop(&found_offer.shop_id).await?;
 
         let stripe_account_id =
             AccountId::from_str(&stripe_account.stripe_account_id)
@@ -372,8 +366,8 @@ impl stripe_service_server::StripeService for StripeService {
                         application_fee_amount: Some(
                             Self::calculate_fee_amount(
                                 price.unit_amount,
-                                found_market_booth.platform_fee_percent,
-                                found_market_booth.minimum_platform_fee_cent,
+                                found_shop.platform_fee_percent,
+                                found_shop.minimum_platform_fee_cent,
                             ),
                         ),
                         ..Default::default()
@@ -396,8 +390,8 @@ impl stripe_service_server::StripeService for StripeService {
                         application_fee_percent: Some(
                             Self::calculate_fee_percent(
                                 price.unit_amount,
-                                found_market_booth.platform_fee_percent,
-                                found_market_booth.minimum_platform_fee_cent,
+                                found_shop.platform_fee_percent,
+                                found_shop.minimum_platform_fee_cent,
                             ),
                         ),
                         ..Default::default()
