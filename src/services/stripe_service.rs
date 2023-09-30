@@ -379,8 +379,8 @@ impl stripe_service_server::StripeService for StripeService {
                     });
             }
             PriceType::Recurring => {
-                // If subscription and the offer is digital we need to provide the
-                // user_id to the payment in order to assing ownership of the product to the user
+                // If offer is a digital subscription, we need to provide the user_id to the payment
+                // in order to assing ownership of the subscription to the buyer
                 if found_offer.r#type() == OfferType::Digital {
                     if let Some(user_id) = user_id {
                         metadata.insert(Self::metadata_key_user_id(), user_id);
@@ -399,6 +399,10 @@ impl stripe_service_server::StripeService for StripeService {
                                 found_shop.minimum_platform_fee_cent,
                             ),
                         ),
+                        trial_period_days: price
+                            .recurring
+                            .as_ref()
+                            .and_then(|r| r.trial_period_days),
                         ..Default::default()
                     });
             }
