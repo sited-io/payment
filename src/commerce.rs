@@ -1,3 +1,4 @@
+use tonic::metadata::MetadataMap;
 use tonic::transport::Channel;
 use tonic::{Request, Status};
 
@@ -23,14 +24,19 @@ impl CommerceService {
     pub async fn get_shop(
         &self,
         shop_id: &String,
+        metadata: &MetadataMap,
     ) -> Result<ShopResponse, Status> {
         let mut client = self.shop_client.clone();
 
+        let mut request = Request::new(GetShopRequest {
+            shop_id: shop_id.to_owned(),
+            extended: None,
+        });
+
+        *request.metadata_mut() = metadata.clone();
+
         client
-            .get_shop(Request::new(GetShopRequest {
-                shop_id: shop_id.to_owned(),
-                extended: None,
-            }))
+            .get_shop(request)
             .await
             .map_err(|_| Status::not_found("shop"))?
             .into_inner()
@@ -59,8 +65,9 @@ impl CommerceService {
         &self,
         shop_id: &String,
         user_id: &String,
+        metadata: &MetadataMap,
     ) -> Result<(), Status> {
-        let shop = self.get_shop(shop_id).await?;
+        let shop = self.get_shop(shop_id, metadata).await?;
 
         if shop.user_id == *user_id {
             Ok(())

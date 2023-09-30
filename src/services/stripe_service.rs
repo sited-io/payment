@@ -148,14 +148,16 @@ impl stripe_service_server::StripeService for StripeService {
         &self,
         request: Request<CreateAccountRequest>,
     ) -> Result<Response<CreateAccountResponse>, Status> {
-        let user_id = get_user_id(request.metadata(), &self.verifier).await?;
+        let metadata = request.metadata().clone();
+
+        let user_id = get_user_id(&metadata, &self.verifier).await?;
 
         let CreateAccountRequest { shop_id } = request.into_inner();
 
         let shop_uuid = parse_uuid(&shop_id, "shop_id")?;
 
         self.commerce_service
-            .check_shop_and_owner(&shop_id, &user_id)
+            .check_shop_and_owner(&shop_id, &user_id, &metadata)
             .await?;
 
         match StripeAccount::get_for_user(&self.pool, &shop_uuid, &user_id)
@@ -316,8 +318,9 @@ impl stripe_service_server::StripeService for StripeService {
         &self,
         request: Request<CreateCheckoutSessionRequest>,
     ) -> Result<Response<CreateCheckoutSessionResponse>, Status> {
-        let user_id =
-            get_user_id(request.metadata(), &self.verifier).await.ok();
+        let metadata = request.metadata().clone();
+
+        let user_id = get_user_id(&metadata, &self.verifier).await.ok();
 
         let CreateCheckoutSessionRequest {
             offer_id,
@@ -339,8 +342,10 @@ impl stripe_service_server::StripeService for StripeService {
             .map_err(|_| Status::not_found(""))?
             .ok_or_else(|| Status::not_found(""))?;
 
-        let found_shop =
-            self.commerce_service.get_shop(&found_offer.shop_id).await?;
+        let found_shop = self
+            .commerce_service
+            .get_shop(&found_offer.shop_id, &metadata)
+            .await?;
 
         let stripe_account_id =
             AccountId::from_str(&stripe_account.stripe_account_id)
