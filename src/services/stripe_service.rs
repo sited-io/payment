@@ -49,6 +49,10 @@ impl StripeService {
         String::from("user_id")
     }
 
+    fn metadata_key_shop_id() -> String {
+        String::from("shop_id")
+    }
+
     fn metadata_key_offer_id() -> String {
         String::from("offer_id")
     }
@@ -355,12 +359,15 @@ impl stripe_service_server::StripeService for StripeService {
         let mut checkout_session = CreateCheckoutSession::new(&success_url);
         checkout_session.cancel_url = Some(&cancel_url);
 
-        // adding offer_id to metadata of stripe checkout session
-        // this is used in stripe webhook handler to assign payments to offers
-        let mut metadata = HashMap::from([(
-            Self::metadata_key_offer_id(),
-            found_offer.offer_id.to_string(),
-        )]);
+        // adding shop_id and offer_id to metadata of stripe checkout session
+        // this is used in stripe webhook handler to assign offers to payments
+        let mut metadata = HashMap::from([
+            (Self::metadata_key_shop_id(), shop_uuid.to_string()),
+            (
+                Self::metadata_key_offer_id(),
+                found_offer.offer_id.to_string(),
+            ),
+        ]);
 
         match price.price_type() {
             PriceType::Unspecified => return Err(Status::internal("")),
@@ -380,7 +387,8 @@ impl stripe_service_server::StripeService for StripeService {
             }
             PriceType::Recurring => {
                 // If offer is a digital subscription, we need to provide the user_id to the payment
-                // in order to assing ownership of the subscription to the buyer
+                // in order to assing ownership of the subscription to the buyer.
+                // In other cases customers should be able buy without authentication.
                 if found_offer.r#type() == OfferType::Digital {
                     if let Some(user_id) = user_id {
                         metadata.insert(Self::metadata_key_user_id(), user_id);
