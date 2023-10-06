@@ -86,6 +86,28 @@ pub struct CreateCheckoutSessionResponse {
     #[prost(string, tag = "1")]
     pub link: ::prost::alloc::string::String,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CancelSubscriptionRequest {
+    #[prost(string, tag = "1")]
+    pub stripe_subscription_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub shop_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CancelSubscriptionResponse {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResumeSubscriptionRequest {
+    #[prost(string, tag = "1")]
+    pub stripe_subscription_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub shop_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResumeSubscriptionResponse {}
 /// Generated server implementations.
 pub mod stripe_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
@@ -126,6 +148,20 @@ pub mod stripe_service_server {
             request: tonic::Request<super::CreateCheckoutSessionRequest>,
         ) -> std::result::Result<
             tonic::Response<super::CreateCheckoutSessionResponse>,
+            tonic::Status,
+        >;
+        async fn cancel_subscription(
+            &self,
+            request: tonic::Request<super::CancelSubscriptionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelSubscriptionResponse>,
+            tonic::Status,
+        >;
+        async fn resume_subscription(
+            &self,
+            request: tonic::Request<super::ResumeSubscriptionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResumeSubscriptionResponse>,
             tonic::Status,
         >;
     }
@@ -429,6 +465,100 @@ pub mod stripe_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = CreateCheckoutSessionSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/peoplesmarkets.payment.v1.StripeService/CancelSubscription" => {
+                    #[allow(non_camel_case_types)]
+                    struct CancelSubscriptionSvc<T: StripeService>(pub Arc<T>);
+                    impl<
+                        T: StripeService,
+                    > tonic::server::UnaryService<super::CancelSubscriptionRequest>
+                    for CancelSubscriptionSvc<T> {
+                        type Response = super::CancelSubscriptionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CancelSubscriptionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StripeService>::cancel_subscription(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = CancelSubscriptionSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/peoplesmarkets.payment.v1.StripeService/ResumeSubscription" => {
+                    #[allow(non_camel_case_types)]
+                    struct ResumeSubscriptionSvc<T: StripeService>(pub Arc<T>);
+                    impl<
+                        T: StripeService,
+                    > tonic::server::UnaryService<super::ResumeSubscriptionRequest>
+                    for ResumeSubscriptionSvc<T> {
+                        type Response = super::ResumeSubscriptionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ResumeSubscriptionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StripeService>::resume_subscription(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ResumeSubscriptionSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

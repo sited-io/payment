@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-stripe = { version = "0.22.2", default-features = false, features = [
+async-stripe = { git = "https://github.com/Maxi-Teme/async-stripe.git", default-features = false, features = [
   "runtime-tokio-hyper",
   "connect",
   "checkout",
@@ -31,6 +31,7 @@ sea-query-postgres = { version = "0.4.0", default-features = false, features = [
   "with-uuid",
   "with-chrono",
 ] }
+serde = { version = "1.0.188", features = ["derive"] }
 tokio = { version = "1.32.0", features = ["macros", "rt"] }
 tonic = { version = "0.10.0", default-features = false, features = [
   "transport",

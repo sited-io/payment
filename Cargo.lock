@@ -82,9 +82,8 @@ dependencies = [
 
 [[package]]
 name = "async-stripe"
-version = "0.22.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b313de0d654c4c4c46faa737b2257ce9ed79e69926aa4c734b9816be20102b2c"
+version = "0.25.1"
+source = "git+https://github.com/Maxi-Teme/async-stripe.git#d5d0a1ecd0dd07e4e173ed0a2a7f18d252dcb0be"
 dependencies = [
  "futures-util",
  "http-types",
@@ -97,7 +96,6 @@ dependencies = [
  "smart-default",
  "smol_str",
  "thiserror",
- "time-core",
  "tokio",
 ]
 
@@ -1154,6 +1152,7 @@ dependencies = [
  "reqwest",
  "sea-query",
  "sea-query-postgres",
+ "serde",
  "tokio",
  "tonic",
  "tonic-build",

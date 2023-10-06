@@ -1,3 +1,4 @@
+use http::header::AUTHORIZATION;
 use tonic::metadata::MetadataMap;
 use tonic::transport::Channel;
 use tonic::{Request, Status};
@@ -33,12 +34,19 @@ impl CommerceService {
             extended: None,
         });
 
-        *request.metadata_mut() = metadata.clone();
+        if let Some(auth_header) = metadata.get(AUTHORIZATION.as_str()) {
+            request
+                .metadata_mut()
+                .insert(AUTHORIZATION.as_str(), auth_header.to_owned());
+        }
 
         client
             .get_shop(request)
             .await
-            .map_err(|_| Status::not_found("shop"))?
+            .map_err(|err| {
+                tracing::log::error!("{err}");
+                Status::not_found("shop")
+            })?
             .into_inner()
             .shop
             .ok_or_else(|| Status::not_found("shop"))

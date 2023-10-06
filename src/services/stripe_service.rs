@@ -5,8 +5,9 @@ use std::str::FromStr;
 use jwtk::jwk::RemoteJwksVerifier;
 use stripe::{
     Account, AccountId, AccountLink, AccountLinkType, AccountType,
-    CheckoutSession, CheckoutSessionMode, Client, CreateAccount,
-    CreateAccountLink, CreateCheckoutSession, CreateCheckoutSessionLineItems,
+    CancelSubscription, CheckoutSession, CheckoutSessionMode, Client,
+    CreateAccount, CreateAccountLink, CreateCheckoutSession,
+    CreateCheckoutSessionLineItems,
     CreateCheckoutSessionLineItemsAdjustableQuantity,
     CreateCheckoutSessionLineItemsPriceData,
     CreateCheckoutSessionLineItemsPriceDataProductData,
@@ -14,6 +15,7 @@ use stripe::{
     CreateCheckoutSessionLineItemsPriceDataRecurringInterval,
     CreateCheckoutSessionPaymentIntentData,
     CreateCheckoutSessionSubscriptionData, Currency as StripeCurrency,
+    ResumeSubscription, Subscription as StripeSubscription, SubscriptionId,
 };
 use tonic::{async_trait, Request, Response, Status};
 
@@ -24,13 +26,15 @@ use crate::api::peoplesmarkets::payment::v1::stripe_service_server::{
     self, StripeServiceServer,
 };
 use crate::api::peoplesmarkets::payment::v1::{
+    CancelSubscriptionRequest, CancelSubscriptionResponse,
     CreateAccountLinkRequest, CreateAccountLinkResponse, CreateAccountRequest,
     CreateAccountResponse, CreateCheckoutSessionRequest,
     CreateCheckoutSessionResponse, GetAccountDetailsRequest,
     GetAccountDetailsResponse, GetAccountRequest, GetAccountResponse,
+    ResumeSubscriptionRequest, ResumeSubscriptionResponse,
     StripeAccount as StripeAccountMsg, StripeAccountDetails,
 };
-use crate::auth::get_user_id;
+use crate::auth::{get_user_id, verify_service_user};
 use crate::model::StripeAccount;
 use crate::{
     parse_id_error_to_status, parse_uuid, stripe_error_to_status,
@@ -479,6 +483,93 @@ impl stripe_service_server::StripeService for StripeService {
         .ok_or_else(|| Status::internal(""))?;
 
         Ok(Response::new(CreateCheckoutSessionResponse { link }))
+    }
+
+    async fn cancel_subscription(
+        &self,
+        request: Request<CancelSubscriptionRequest>,
+    ) -> Result<Response<CancelSubscriptionResponse>, Status> {
+        verify_service_user(request.metadata(), &self.verifier).await?;
+
+        let CancelSubscriptionRequest {
+            stripe_subscription_id,
+
+            shop_id,
+        } = request.into_inner();
+
+        let shop_uuid = parse_uuid(&shop_id, "shop_id")?;
+
+        let stripe_account = StripeAccount::get(&self.pool, &shop_uuid)
+            .await
+            .map_err(|_| Status::not_found(""))?
+            .ok_or_else(|| Status::not_found(""))?;
+
+        let stripe_account_id =
+            AccountId::from_str(&stripe_account.stripe_account_id)
+                .map_err(parse_id_error_to_status)?;
+
+        let subscription_id = SubscriptionId::from_str(&stripe_subscription_id)
+            .map_err(parse_id_error_to_status)?;
+
+        let stripe_client = self.stripe_client.clone();
+        let stripe_client =
+            stripe_client.with_stripe_account(stripe_account_id);
+
+        StripeSubscription::cancel(
+            &stripe_client,
+            &subscription_id,
+            CancelSubscription::new(),
+        )
+        .await
+        .map_err(|err| {
+            tracing::log::error!("{err}");
+            Status::internal("")
+        })?;
+
+        Ok(Response::new(CancelSubscriptionResponse {}))
+    }
+
+    async fn resume_subscription(
+        &self,
+        request: Request<ResumeSubscriptionRequest>,
+    ) -> Result<Response<ResumeSubscriptionResponse>, Status> {
+        verify_service_user(request.metadata(), &self.verifier).await?;
+
+        let ResumeSubscriptionRequest {
+            stripe_subscription_id,
+            shop_id,
+        } = request.into_inner();
+
+        let shop_uuid = parse_uuid(&shop_id, "shop_id")?;
+
+        let stripe_account = StripeAccount::get(&self.pool, &shop_uuid)
+            .await
+            .map_err(|_| Status::not_found(""))?
+            .ok_or_else(|| Status::not_found(""))?;
+
+        let stripe_account_id =
+            AccountId::from_str(&stripe_account.stripe_account_id)
+                .map_err(parse_id_error_to_status)?;
+
+        let subscription_id = SubscriptionId::from_str(&stripe_subscription_id)
+            .map_err(parse_id_error_to_status)?;
+
+        let stripe_client = self.stripe_client.clone();
+        let stripe_client =
+            stripe_client.with_stripe_account(stripe_account_id);
+
+        StripeSubscription::resume(
+            &stripe_client,
+            &subscription_id,
+            ResumeSubscription::new(),
+        )
+        .await
+        .map_err(|err| {
+            tracing::log::error!("{err}");
+            Status::internal("")
+        })?;
+
+        Ok(Response::new(ResumeSubscriptionResponse {}))
     }
 }
 
