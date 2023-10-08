@@ -19,6 +19,7 @@ use stripe::{
     CreateCheckoutSessionShippingOptions,
     CreateCheckoutSessionShippingOptionsShippingRateData,
     CreateCheckoutSessionShippingOptionsShippingRateDataFixedAmount,
+    CreateCheckoutSessionShippingOptionsShippingRateDataType,
     CreateCheckoutSessionSubscriptionData, Currency as StripeCurrency,
     ResumeSubscription, Subscription as StripeSubscription, SubscriptionId,
 };
@@ -414,6 +415,7 @@ impl stripe_service_server::StripeService for StripeService {
             checkout_session.shipping_options = Some(vec![
                 CreateCheckoutSessionShippingOptions {
                     shipping_rate_data: Some(CreateCheckoutSessionShippingOptionsShippingRateData {
+                        type_: Some(CreateCheckoutSessionShippingOptionsShippingRateDataType::FixedAmount),
                         display_name: Self::shipping_rate_key(),
                         fixed_amount: Some(CreateCheckoutSessionShippingOptionsShippingRateDataFixedAmount {
                             amount: shipping_rate.amount.into(),
