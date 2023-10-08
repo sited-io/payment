@@ -14,6 +14,11 @@ use stripe::{
     CreateCheckoutSessionLineItemsPriceDataRecurring,
     CreateCheckoutSessionLineItemsPriceDataRecurringInterval,
     CreateCheckoutSessionPaymentIntentData,
+    CreateCheckoutSessionShippingAddressCollection,
+    CreateCheckoutSessionShippingAddressCollectionAllowedCountries,
+    CreateCheckoutSessionShippingOptions,
+    CreateCheckoutSessionShippingOptionsShippingRateData,
+    CreateCheckoutSessionShippingOptionsShippingRateDataFixedAmount,
     CreateCheckoutSessionSubscriptionData, Currency as StripeCurrency,
     ResumeSubscription, Subscription as StripeSubscription, SubscriptionId,
 };
@@ -35,6 +40,7 @@ use crate::api::peoplesmarkets::payment::v1::{
     StripeAccount as StripeAccountMsg, StripeAccountDetails,
 };
 use crate::auth::{get_user_id, verify_service_user};
+use crate::countries::{to_stripe_country, ALL_STRIPE_COUNTRIES};
 use crate::model::StripeAccount;
 use crate::{
     parse_id_error_to_status, parse_uuid, stripe_error_to_status,
@@ -59,6 +65,10 @@ impl StripeService {
 
     fn metadata_key_offer_id() -> String {
         String::from("offer_id")
+    }
+
+    fn shipping_rate_key() -> String {
+        String::from("SHIPPING")
     }
 
     fn new(
@@ -146,6 +156,18 @@ impl StripeService {
             RecurringInterval::Week => Ok(Week),
             RecurringInterval::Month => Ok(Month),
             RecurringInterval::Year => Ok(Year),
+        }
+    }
+
+    fn get_shipping_address_countries(
+        all_countries: bool,
+        countries: Vec<i32>,
+    ) -> Vec<CreateCheckoutSessionShippingAddressCollectionAllowedCountries>
+    {
+        if all_countries {
+            ALL_STRIPE_COUNTRIES.to_vec()
+        } else {
+            countries.iter().map(to_stripe_country).collect()
         }
     }
 }
@@ -338,6 +360,9 @@ impl stripe_service_server::StripeService for StripeService {
 
         let found_offer = self.commerce_service.get_offer(&offer_id).await?;
 
+        let found_shipping_rate =
+            self.commerce_service.get_shipping_rate(&offer_id).await;
+
         let price = found_offer
             .price
             .as_ref()
@@ -372,6 +397,35 @@ impl stripe_service_server::StripeService for StripeService {
                 found_offer.offer_id.to_string(),
             ),
         ]);
+
+        // get shipping address collection based on configured shipping rates
+        let shipping_address_collection =
+            found_shipping_rate.to_owned().map(|s| {
+                CreateCheckoutSessionShippingAddressCollection {
+                    allowed_countries: Self::get_shipping_address_countries(
+                        s.all_countries,
+                        s.specific_countries,
+                    ),
+                }
+            });
+
+        // add shipping rate to checkout session
+        if let Some(shipping_rate) = found_shipping_rate {
+            checkout_session.shipping_options = Some(vec![
+                CreateCheckoutSessionShippingOptions {
+                    shipping_rate_data: Some(CreateCheckoutSessionShippingOptionsShippingRateData {
+                        display_name: Self::shipping_rate_key(),
+                        fixed_amount: Some(CreateCheckoutSessionShippingOptionsShippingRateDataFixedAmount {
+                            amount: shipping_rate.amount.into(),
+                            currency: Self::get_currency(shipping_rate.currency)?,
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }
+            ]);
+        };
 
         match price.price_type() {
             PriceType::Unspecified => return Err(Status::internal("")),
@@ -464,9 +518,12 @@ impl stripe_service_server::StripeService for StripeService {
             ..Default::default()
         }];
 
-        checkout_session.line_items = Some(line_items);
-
         checkout_session.metadata = Some(metadata);
+
+        checkout_session.shipping_address_collection =
+            shipping_address_collection;
+
+        checkout_session.line_items = Some(line_items);
 
         let stripe_client = self.stripe_client.clone();
 

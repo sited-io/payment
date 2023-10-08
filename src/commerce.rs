@@ -4,21 +4,26 @@ use tonic::transport::Channel;
 use tonic::{Request, Status};
 
 use crate::api::peoplesmarkets::commerce::v1::offer_service_client::OfferServiceClient;
+use crate::api::peoplesmarkets::commerce::v1::shipping_rate_service_client::ShippingRateServiceClient;
 use crate::api::peoplesmarkets::commerce::v1::shop_service_client::ShopServiceClient;
 use crate::api::peoplesmarkets::commerce::v1::{
-    GetOfferRequest, GetShopRequest, OfferResponse, ShopResponse,
+    GetOfferRequest, GetShippingRateRequest, GetShopRequest, OfferResponse,
+    ShippingRateResponse, ShopResponse,
 };
 
 pub struct CommerceService {
     shop_client: ShopServiceClient<Channel>,
     offer_client: OfferServiceClient<Channel>,
+    shipping_rate_client: ShippingRateServiceClient<Channel>,
 }
 
 impl CommerceService {
     pub async fn init(url: String) -> Result<Self, tonic::transport::Error> {
         Ok(Self {
             shop_client: ShopServiceClient::connect(url.clone()).await?,
-            offer_client: OfferServiceClient::connect(url).await?,
+            offer_client: OfferServiceClient::connect(url.clone()).await?,
+            shipping_rate_client: ShippingRateServiceClient::connect(url)
+                .await?,
         })
     }
 
@@ -67,6 +72,21 @@ impl CommerceService {
             .into_inner()
             .offer
             .ok_or_else(|| Status::not_found(""))
+    }
+
+    pub async fn get_shipping_rate(
+        &self,
+        offer_id: &String,
+    ) -> Option<ShippingRateResponse> {
+        let mut client = self.shipping_rate_client.clone();
+
+        client
+            .get_shipping_rate(Request::new(GetShippingRateRequest {
+                offer_id: Some(offer_id.to_owned()),
+            }))
+            .await
+            .ok()
+            .and_then(|s| s.into_inner().shipping_rate)
     }
 
     pub async fn check_shop_and_owner(

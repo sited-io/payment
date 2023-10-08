@@ -2,6 +2,7 @@ use stripe::{ParseIdError, StripeError};
 use tonic::Status;
 use uuid::Uuid;
 
+pub mod countries;
 mod stripe_service;
 pub use stripe_service::StripeService;
 
