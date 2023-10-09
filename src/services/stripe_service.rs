@@ -361,20 +361,21 @@ impl stripe_service_server::StripeService for StripeService {
 
         let found_offer = self.commerce_service.get_offer(&offer_id).await?;
 
-        let found_shipping_rate =
-            self.commerce_service.get_shipping_rate(&offer_id).await;
-
         let price = found_offer
             .price
             .as_ref()
-            .ok_or_else(|| Status::internal(""))?;
+            .ok_or_else(|| Status::internal("offer.price missing"))?;
 
-        let shop_uuid = parse_uuid(&found_offer.shop_id, "")?;
+        let shop_uuid = parse_uuid(&found_offer.shop_id, "offer.shop_id")?;
 
         let stripe_account = StripeAccount::get(&self.pool, &shop_uuid)
             .await
-            .map_err(|_| Status::not_found(""))?
-            .ok_or_else(|| Status::not_found(""))?;
+            .map_err(|_| {
+                Status::not_found(format!("stripe account for '{}'", shop_uuid))
+            })?
+            .ok_or_else(|| {
+                Status::not_found(format!("stripe account for '{}'", shop_uuid))
+            })?;
 
         let found_shop = self
             .commerce_service
@@ -385,11 +386,11 @@ impl stripe_service_server::StripeService for StripeService {
             AccountId::from_str(&stripe_account.stripe_account_id)
                 .map_err(parse_id_error_to_status)?;
 
-        // create checkout session request
+        // Create checkout session request
         let mut checkout_session = CreateCheckoutSession::new(&success_url);
         checkout_session.cancel_url = Some(&cancel_url);
 
-        // adding shop_id and offer_id to metadata of stripe checkout session
+        // Add shop_id and offer_id to metadata of stripe checkout session
         // this is used in stripe webhook handler to assign offers to payments
         let mut metadata = HashMap::from([
             (Self::metadata_key_shop_id(), shop_uuid.to_string()),
@@ -399,38 +400,10 @@ impl stripe_service_server::StripeService for StripeService {
             ),
         ]);
 
-        // get shipping address collection based on configured shipping rates
-        let shipping_address_collection =
-            found_shipping_rate.to_owned().map(|s| {
-                CreateCheckoutSessionShippingAddressCollection {
-                    allowed_countries: Self::get_shipping_address_countries(
-                        s.all_countries,
-                        s.specific_countries,
-                    ),
-                }
-            });
-
-        // add shipping rate to checkout session
-        if let Some(shipping_rate) = found_shipping_rate {
-            checkout_session.shipping_options = Some(vec![
-                CreateCheckoutSessionShippingOptions {
-                    shipping_rate_data: Some(CreateCheckoutSessionShippingOptionsShippingRateData {
-                        type_: Some(CreateCheckoutSessionShippingOptionsShippingRateDataType::FixedAmount),
-                        display_name: Self::shipping_rate_key(),
-                        fixed_amount: Some(CreateCheckoutSessionShippingOptionsShippingRateDataFixedAmount {
-                            amount: shipping_rate.amount.into(),
-                            currency: Self::get_currency(shipping_rate.currency)?,
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                }
-            ]);
-        };
-
         match price.price_type() {
-            PriceType::Unspecified => return Err(Status::internal("")),
+            PriceType::Unspecified => {
+                return Err(Status::internal("price_type unspecified"))
+            }
             PriceType::OneTime => {
                 checkout_session.mode = Some(CheckoutSessionMode::Payment);
                 checkout_session.payment_intent_data =
@@ -444,6 +417,40 @@ impl stripe_service_server::StripeService for StripeService {
                         ),
                         ..Default::default()
                     });
+
+                // Get shipping address collection based on configured shipping rates
+                let found_shipping_rate =
+                    self.commerce_service.get_shipping_rate(&offer_id).await;
+
+                checkout_session.shipping_address_collection =
+                    found_shipping_rate.to_owned().map(|s| {
+                        CreateCheckoutSessionShippingAddressCollection {
+                            allowed_countries:
+                                Self::get_shipping_address_countries(
+                                    s.all_countries,
+                                    s.specific_countries,
+                                ),
+                        }
+                    });
+
+                // Add shipping rate to checkout session
+                if let Some(shipping_rate) = found_shipping_rate {
+                    checkout_session.shipping_options = Some(vec![
+                        CreateCheckoutSessionShippingOptions {
+                            shipping_rate_data: Some(CreateCheckoutSessionShippingOptionsShippingRateData {
+                                type_: Some(CreateCheckoutSessionShippingOptionsShippingRateDataType::FixedAmount),
+                                display_name: Self::shipping_rate_key(),
+                                fixed_amount: Some(CreateCheckoutSessionShippingOptionsShippingRateDataFixedAmount {
+                                    amount: shipping_rate.amount.into(),
+                                    currency: Self::get_currency(shipping_rate.currency)?,
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ]);
+                }
             }
             PriceType::Recurring => {
                 // If offer is a digital subscription, we need to provide the user_id to the payment
@@ -476,6 +483,10 @@ impl stripe_service_server::StripeService for StripeService {
             }
         }
 
+        // Add metadata to checkout session
+        checkout_session.metadata = Some(metadata);
+
+        // Add line items to checkout session
         let product = CreateCheckoutSessionLineItemsPriceDataProductData {
             name: found_offer.name,
             description: (!found_offer.description.is_empty())
@@ -513,19 +524,13 @@ impl stripe_service_server::StripeService for StripeService {
                 ..Default::default()
             };
 
-        let line_items = vec![CreateCheckoutSessionLineItems {
-            quantity: Some(1),
-            adjustable_quantity: Some(adjustable_quantity),
-            price_data: Some(price_data),
-            ..Default::default()
-        }];
-
-        checkout_session.metadata = Some(metadata);
-
-        checkout_session.shipping_address_collection =
-            shipping_address_collection;
-
-        checkout_session.line_items = Some(line_items);
+        checkout_session.line_items =
+            Some(vec![CreateCheckoutSessionLineItems {
+                quantity: Some(1),
+                adjustable_quantity: Some(adjustable_quantity),
+                price_data: Some(price_data),
+                ..Default::default()
+            }]);
 
         let stripe_client = self.stripe_client.clone();
 
