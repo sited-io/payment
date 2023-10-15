@@ -288,25 +288,27 @@ impl stripe_service_server::StripeService for StripeService {
 
         let shop_id = parse_uuid(&shop_id, "shop_id")?;
 
-        let found_stripe_account = StripeAccount::get(&self.pool, &shop_id)
-            .await?
-            .ok_or(Status::not_found(""))?;
+        if let Some(found_stripe_account) =
+            StripeAccount::get(&self.pool, &shop_id).await?
+        {
+            let account = Account::retrieve(
+                &self.stripe_client,
+                &AccountId::from_str(&found_stripe_account.stripe_account_id)
+                    .map_err(parse_id_error_to_status)?,
+                &[],
+            )
+            .await
+            .map_err(stripe_error_to_status)?;
 
-        let account = Account::retrieve(
-            &self.stripe_client,
-            &AccountId::from_str(&found_stripe_account.stripe_account_id)
-                .map_err(parse_id_error_to_status)?,
-            &[],
-        )
-        .await
-        .map_err(stripe_error_to_status)?;
+            let enabled = account.charges_enabled.unwrap_or(false)
+                && account.details_submitted.unwrap_or(false);
 
-        let enabled = account.charges_enabled.unwrap_or(false)
-            && account.details_submitted.unwrap_or(false);
-
-        Ok(Response::new(GetAccountResponse {
-            account: Some(Self::to_response(found_stripe_account, enabled)),
-        }))
+            Ok(Response::new(GetAccountResponse {
+                account: Some(Self::to_response(found_stripe_account, enabled)),
+            }))
+        } else {
+            Ok(Response::new(GetAccountResponse { account: None }))
+        }
     }
 
     async fn get_account_details(
