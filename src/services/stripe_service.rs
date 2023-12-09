@@ -1,4 +1,3 @@
-use chrono::Utc;
 use deadpool_postgres::Pool;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -6,9 +5,8 @@ use std::str::FromStr;
 use jwtk::jwk::RemoteJwksVerifier;
 use stripe::{
     Account, AccountId, AccountLink, AccountLinkType, AccountType,
-    CancelSubscription, CheckoutSession, CheckoutSessionMode, Client,
-    CreateAccount, CreateAccountLink, CreateCheckoutSession,
-    CreateCheckoutSessionLineItems,
+    CheckoutSession, CheckoutSessionMode, Client, CreateAccount,
+    CreateAccountLink, CreateCheckoutSession, CreateCheckoutSessionLineItems,
     CreateCheckoutSessionLineItemsAdjustableQuantity,
     CreateCheckoutSessionLineItemsPriceData,
     CreateCheckoutSessionLineItemsPriceDataProductData,
