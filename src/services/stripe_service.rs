@@ -1,3 +1,4 @@
+use chrono::Utc;
 use deadpool_postgres::Pool;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -22,6 +23,7 @@ use stripe::{
     CreateCheckoutSessionShippingOptionsShippingRateDataType,
     CreateCheckoutSessionSubscriptionData, Currency as StripeCurrency,
     ResumeSubscription, Subscription as StripeSubscription, SubscriptionId,
+    UpdateSubscription,
 };
 use tonic::{async_trait, Request, Response, Status};
 
@@ -581,10 +583,14 @@ impl stripe_service_server::StripeService for StripeService {
         let stripe_client =
             stripe_client.with_stripe_account(stripe_account_id);
 
-        StripeSubscription::cancel(
+        let mut update_subscription = UpdateSubscription::new();
+
+        update_subscription.cancel_at_period_end = Some(true);
+
+        StripeSubscription::update(
             &stripe_client,
             &subscription_id,
-            CancelSubscription::new(),
+            update_subscription,
         )
         .await
         .map_err(|err| {
