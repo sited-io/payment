@@ -15,6 +15,10 @@ pub struct MediaResponse {
     pub updated_at: i64,
     #[prost(string, tag = "7")]
     pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub file_name: ::prost::alloc::string::String,
+    #[prost(int64, tag = "9")]
+    pub ordering: i64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -33,6 +37,8 @@ pub struct CreateMediaRequest {
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
     pub file: ::core::option::Option<MediaUpload>,
+    #[prost(string, tag = "4")]
+    pub file_name: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -127,6 +133,8 @@ pub struct UpdateMediaRequest {
     pub name: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "3")]
     pub file: ::core::option::Option<MediaUpload>,
+    #[prost(string, optional, tag = "4")]
+    pub file_name: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -205,10 +213,25 @@ pub struct AddMediaToOfferRequest {
     pub media_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub offer_id: ::prost::alloc::string::String,
+    #[prost(int64, optional, tag = "3")]
+    pub ordering: ::core::option::Option<i64>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AddMediaToOfferResponse {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateMediaOfferOrderingRequest {
+    #[prost(string, tag = "1")]
+    pub media_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub offer_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub ordering: i64,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateMediaOfferOrderingResponse {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RemoveMediaFromOfferRequest {
@@ -226,6 +249,7 @@ pub enum MediaOrderByField {
     Unspecified = 0,
     CreatedAt = 1,
     UpdatedAt = 2,
+    Ordering = 3,
 }
 impl MediaOrderByField {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -237,6 +261,7 @@ impl MediaOrderByField {
             MediaOrderByField::Unspecified => "MEDIA_ORDER_BY_FIELD_UNSPECIFIED",
             MediaOrderByField::CreatedAt => "MEDIA_ORDER_BY_FIELD_CREATED_AT",
             MediaOrderByField::UpdatedAt => "MEDIA_ORDER_BY_FIELD_UPDATED_AT",
+            MediaOrderByField::Ordering => "MEDIA_ORDER_BY_FIELD_ORDERING",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -245,6 +270,7 @@ impl MediaOrderByField {
             "MEDIA_ORDER_BY_FIELD_UNSPECIFIED" => Some(Self::Unspecified),
             "MEDIA_ORDER_BY_FIELD_CREATED_AT" => Some(Self::CreatedAt),
             "MEDIA_ORDER_BY_FIELD_UPDATED_AT" => Some(Self::UpdatedAt),
+            "MEDIA_ORDER_BY_FIELD_ORDERING" => Some(Self::Ordering),
             _ => None,
         }
     }
@@ -683,6 +709,36 @@ pub mod media_service_client {
                     GrpcMethod::new(
                         "peoplesmarkets.media.v1.MediaService",
                         "AddMediaToOffer",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_media_offer_ordering(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateMediaOfferOrderingRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateMediaOfferOrderingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/peoplesmarkets.media.v1.MediaService/UpdateMediaOfferOrdering",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "peoplesmarkets.media.v1.MediaService",
+                        "UpdateMediaOfferOrdering",
                     ),
                 );
             self.inner.unary(req, path, codec).await

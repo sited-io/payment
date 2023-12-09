@@ -35,7 +35,10 @@ impl CommerceService {
         let mut client = self.shop_client.clone();
 
         let mut request = Request::new(GetShopRequest {
-            shop_id: shop_id.to_owned(),
+            shop_id: Some(shop_id.to_owned()),
+            domain: None,
+            owner: None,
+            slug: None,
             extended: None,
         });
 
