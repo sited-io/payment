@@ -629,7 +629,7 @@ impl stripe_service_server::StripeService for StripeService {
 
         let mut update_subscription = UpdateSubscription::new();
 
-        update_subscription.cancel_at_period_end = None;
+        update_subscription.cancel_at_period_end = Some(false);
 
         StripeSubscription::update(
             &stripe_client,
