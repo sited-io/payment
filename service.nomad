@@ -3,7 +3,7 @@ job "payment" {
   type        = "service"
 
   group "payment-api" {
-    count = 2
+    count = 1
 
     network {
       mode = "bridge"
@@ -43,6 +43,12 @@ job "payment" {
 
     task "payment-api" {
       driver = "docker"
+
+      resources {
+        cpu        = 100
+        memory     = 256
+        memory_max = 256
+      }
 
       vault {
         policies = ["service-payment"]
