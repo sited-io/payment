@@ -3,10 +3,10 @@ use tonic::metadata::MetadataMap;
 use tonic::transport::Channel;
 use tonic::{Request, Status};
 
-use crate::api::peoplesmarkets::commerce::v1::offer_service_client::OfferServiceClient;
-use crate::api::peoplesmarkets::commerce::v1::shipping_rate_service_client::ShippingRateServiceClient;
-use crate::api::peoplesmarkets::commerce::v1::shop_service_client::ShopServiceClient;
-use crate::api::peoplesmarkets::commerce::v1::{
+use crate::api::sited_io::commerce::v1::offer_service_client::OfferServiceClient;
+use crate::api::sited_io::commerce::v1::shipping_rate_service_client::ShippingRateServiceClient;
+use crate::api::sited_io::commerce::v1::shop_service_client::ShopServiceClient;
+use crate::api::sited_io::commerce::v1::{
     GetOfferRequest, GetShippingRateRequest, GetShopRequest, OfferResponse,
     ShippingRateResponse, ShopResponse,
 };

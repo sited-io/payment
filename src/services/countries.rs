@@ -1,6 +1,6 @@
 use stripe::CreateCheckoutSessionShippingAddressCollectionAllowedCountries;
 
-use crate::api::peoplesmarkets::commerce::v1::ShippingCountry;
+use crate::api::sited_io::commerce::v1::ShippingCountry;
 
 pub const ALL_STRIPE_COUNTRIES:
     [CreateCheckoutSessionShippingAddressCollectionAllowedCountries; 236] = [

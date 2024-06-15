@@ -244,7 +244,7 @@ pub mod stripe_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/peoplesmarkets.payment.v1.StripeService/CreateAccount" => {
+                "/sited_io.payment.v1.StripeService/CreateAccount" => {
                     #[allow(non_camel_case_types)]
                     struct CreateAccountSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -290,7 +290,7 @@ pub mod stripe_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/peoplesmarkets.payment.v1.StripeService/CreateAccountLink" => {
+                "/sited_io.payment.v1.StripeService/CreateAccountLink" => {
                     #[allow(non_camel_case_types)]
                     struct CreateAccountLinkSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -337,7 +337,7 @@ pub mod stripe_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/peoplesmarkets.payment.v1.StripeService/GetAccount" => {
+                "/sited_io.payment.v1.StripeService/GetAccount" => {
                     #[allow(non_camel_case_types)]
                     struct GetAccountSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -383,7 +383,7 @@ pub mod stripe_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/peoplesmarkets.payment.v1.StripeService/GetAccountDetails" => {
+                "/sited_io.payment.v1.StripeService/GetAccountDetails" => {
                     #[allow(non_camel_case_types)]
                     struct GetAccountDetailsSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -430,7 +430,7 @@ pub mod stripe_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/peoplesmarkets.payment.v1.StripeService/CreateCheckoutSession" => {
+                "/sited_io.payment.v1.StripeService/CreateCheckoutSession" => {
                     #[allow(non_camel_case_types)]
                     struct CreateCheckoutSessionSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -480,7 +480,7 @@ pub mod stripe_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/peoplesmarkets.payment.v1.StripeService/CancelSubscription" => {
+                "/sited_io.payment.v1.StripeService/CancelSubscription" => {
                     #[allow(non_camel_case_types)]
                     struct CancelSubscriptionSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -527,7 +527,7 @@ pub mod stripe_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/peoplesmarkets.payment.v1.StripeService/ResumeSubscription" => {
+                "/sited_io.payment.v1.StripeService/ResumeSubscription" => {
                     #[allow(non_camel_case_types)]
                     struct ResumeSubscriptionSvc<T: StripeService>(pub Arc<T>);
                     impl<
@@ -612,6 +612,6 @@ pub mod stripe_service_server {
         }
     }
     impl<T: StripeService> tonic::server::NamedService for StripeServiceServer<T> {
-        const NAME: &'static str = "peoplesmarkets.payment.v1.StripeService";
+        const NAME: &'static str = "sited_io.payment.v1.StripeService";
     }
 }

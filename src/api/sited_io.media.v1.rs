@@ -110,7 +110,9 @@ pub struct ListMediaResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAccessibleMediaRequest {
     #[prost(message, optional, tag = "2")]
-    pub pagination: ::core::option::Option<super::super::pagination::v1::Pagination>,
+    pub pagination: ::core::option::Option<
+        super::super::pagination::v1::PaginationRequest,
+    >,
     #[prost(message, optional, tag = "3")]
     pub order_by: ::core::option::Option<MediaOrderBy>,
     #[prost(message, optional, tag = "4")]
@@ -122,7 +124,9 @@ pub struct ListAccessibleMediaResponse {
     #[prost(message, repeated, tag = "1")]
     pub medias: ::prost::alloc::vec::Vec<MediaResponse>,
     #[prost(message, optional, tag = "2")]
-    pub pagination: ::core::option::Option<super::super::pagination::v1::Pagination>,
+    pub pagination: ::core::option::Option<
+        super::super::pagination::v1::PaginationResponse,
+    >,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -407,15 +411,12 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/CreateMedia",
+                "/sited_io.media.v1.MediaService/CreateMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
-                        "CreateMedia",
-                    ),
+                    GrpcMethod::new("sited_io.media.v1.MediaService", "CreateMedia"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -437,13 +438,11 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/GetMedia",
+                "/sited_io.media.v1.MediaService/GetMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("peoplesmarkets.media.v1.MediaService", "GetMedia"),
-                );
+                .insert(GrpcMethod::new("sited_io.media.v1.MediaService", "GetMedia"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn download_media(
@@ -464,15 +463,12 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/DownloadMedia",
+                "/sited_io.media.v1.MediaService/DownloadMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
-                        "DownloadMedia",
-                    ),
+                    GrpcMethod::new("sited_io.media.v1.MediaService", "DownloadMedia"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -494,13 +490,11 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/ListMedia",
+                "/sited_io.media.v1.MediaService/ListMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("peoplesmarkets.media.v1.MediaService", "ListMedia"),
-                );
+                .insert(GrpcMethod::new("sited_io.media.v1.MediaService", "ListMedia"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn list_accessible_media(
@@ -521,13 +515,13 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/ListAccessibleMedia",
+                "/sited_io.media.v1.MediaService/ListAccessibleMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
+                        "sited_io.media.v1.MediaService",
                         "ListAccessibleMedia",
                     ),
                 );
@@ -551,15 +545,12 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/UpdateMedia",
+                "/sited_io.media.v1.MediaService/UpdateMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
-                        "UpdateMedia",
-                    ),
+                    GrpcMethod::new("sited_io.media.v1.MediaService", "UpdateMedia"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -581,15 +572,12 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/DeleteMedia",
+                "/sited_io.media.v1.MediaService/DeleteMedia",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
-                        "DeleteMedia",
-                    ),
+                    GrpcMethod::new("sited_io.media.v1.MediaService", "DeleteMedia"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -611,13 +599,13 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/InitiateMultipartUpload",
+                "/sited_io.media.v1.MediaService/InitiateMultipartUpload",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
+                        "sited_io.media.v1.MediaService",
                         "InitiateMultipartUpload",
                     ),
                 );
@@ -641,13 +629,13 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/PutMultipartChunk",
+                "/sited_io.media.v1.MediaService/PutMultipartChunk",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
+                        "sited_io.media.v1.MediaService",
                         "PutMultipartChunk",
                     ),
                 );
@@ -671,13 +659,13 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/CompleteMultipartUpload",
+                "/sited_io.media.v1.MediaService/CompleteMultipartUpload",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
+                        "sited_io.media.v1.MediaService",
                         "CompleteMultipartUpload",
                     ),
                 );
@@ -701,15 +689,12 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/AddMediaToOffer",
+                "/sited_io.media.v1.MediaService/AddMediaToOffer",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
-                        "AddMediaToOffer",
-                    ),
+                    GrpcMethod::new("sited_io.media.v1.MediaService", "AddMediaToOffer"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -731,13 +716,13 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/UpdateMediaOfferOrdering",
+                "/sited_io.media.v1.MediaService/UpdateMediaOfferOrdering",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
+                        "sited_io.media.v1.MediaService",
                         "UpdateMediaOfferOrdering",
                     ),
                 );
@@ -761,13 +746,13 @@ pub mod media_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/peoplesmarkets.media.v1.MediaService/RemoveMediaFromOffer",
+                "/sited_io.media.v1.MediaService/RemoveMediaFromOffer",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "peoplesmarkets.media.v1.MediaService",
+                        "sited_io.media.v1.MediaService",
                         "RemoveMediaFromOffer",
                     ),
                 );

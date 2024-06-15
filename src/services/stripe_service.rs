@@ -24,13 +24,13 @@ use stripe::{
 };
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::api::peoplesmarkets::commerce::v1::{
+use crate::api::sited_io::commerce::v1::{
     Currency, OfferType, PriceType, RecurringInterval,
 };
-use crate::api::peoplesmarkets::payment::v1::stripe_service_server::{
+use crate::api::sited_io::payment::v1::stripe_service_server::{
     self, StripeServiceServer,
 };
-use crate::api::peoplesmarkets::payment::v1::{
+use crate::api::sited_io::payment::v1::{
     CancelSubscriptionRequest, CancelSubscriptionResponse,
     CreateAccountLinkRequest, CreateAccountLinkResponse, CreateAccountRequest,
     CreateAccountResponse, CreateCheckoutSessionRequest,

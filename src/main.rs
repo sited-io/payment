@@ -5,7 +5,7 @@ use tonic::transport::Server;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use payment::api::peoplesmarkets::payment::v1::stripe_service_server::StripeServiceServer;
+use payment::api::sited_io::payment::v1::stripe_service_server::StripeServiceServer;
 use payment::db::{init_db_pool, migrate};
 use payment::logging::{LogOnFailure, LogOnRequest, LogOnResponse};
 use payment::{
@@ -29,6 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         get_env_var("DB_USER"),
         get_env_var("DB_PASSWORD"),
         get_env_var("DB_DBNAME"),
+        std::env::var("DB_ROOT_CERT").ok(),
     )?;
     migrate(&db_pool).await?;
 
@@ -52,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tonic_health::pb::FILE_DESCRIPTOR_SET,
         )
         .register_encoded_file_descriptor_set(
-            payment::api::peoplesmarkets::FILE_DESCRIPTOR_SET,
+            payment::api::sited_io::FILE_DESCRIPTOR_SET,
         )
         .build()
         .unwrap();
@@ -83,6 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     HeaderName::from_static("grpc-status"),
                     HeaderName::from_static("grpc-message"),
                     HeaderName::from_static("x-grpc-web"),
+                    HeaderName::from_static("x-user-agent"),
                 ])
                 .allow_methods([Method::POST])
                 .allow_origin(AllowOrigin::any())
