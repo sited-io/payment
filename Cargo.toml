@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-stripe = { git = "https://github.com/Maxi-Teme/async-stripe.git", default-features = false, features = [
+async-stripe = { version = "0.38", default-features = false, features = [
   "runtime-tokio-hyper",
   "connect",
   "checkout",

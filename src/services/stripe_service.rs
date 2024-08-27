@@ -270,6 +270,7 @@ impl stripe_service_server::StripeService for StripeService {
                 type_: AccountLinkType::AccountOnboarding,
                 collect: None,
                 expand: &[],
+                collection_options: None,
             },
         )
         .await
@@ -388,7 +389,8 @@ impl stripe_service_server::StripeService for StripeService {
                 .map_err(parse_id_error_to_status)?;
 
         // Create checkout session request
-        let mut checkout_session = CreateCheckoutSession::new(&success_url);
+        let mut checkout_session = CreateCheckoutSession::new();
+        checkout_session.success_url = Some(&success_url);
         checkout_session.cancel_url = Some(&cancel_url);
 
         // Add shop_id and offer_id to metadata of stripe checkout session

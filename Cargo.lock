@@ -82,8 +82,9 @@ dependencies = [
 
 [[package]]
 name = "async-stripe"
-version = "0.25.1"
-source = "git+https://github.com/Maxi-Teme/async-stripe.git#d5d0a1ecd0dd07e4e173ed0a2a7f18d252dcb0be"
+version = "0.38.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97ddaa6999d246ba2c6c84d830a1ba0cd16c9234d58701988b3869f0e5bd732d"
 dependencies = [
  "futures-util",
  "http-types",
