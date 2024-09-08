@@ -560,7 +560,6 @@ impl stripe_service_server::StripeService for StripeService {
 
         let CancelSubscriptionRequest {
             stripe_subscription_id,
-
             shop_id,
         } = request.into_inner();
 

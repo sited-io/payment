@@ -36,6 +36,7 @@ impl CommerceService {
 
         let mut request = Request::new(GetShopRequest {
             shop_id: Some(shop_id.to_owned()),
+            website_id: None,
             domain: None,
             owner: None,
             slug: None,

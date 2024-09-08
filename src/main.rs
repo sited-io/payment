@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register_encoded_file_descriptor_set(
             payment::api::sited_io::FILE_DESCRIPTOR_SET,
         )
-        .build()
+        .build_v1()
         .unwrap();
 
     // initialize grpc services
