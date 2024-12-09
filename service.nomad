@@ -19,14 +19,6 @@ job "payment" {
         sidecar_service {
           proxy {
             upstreams {
-              destination_name = "zitadel"
-              local_bind_port  = 8080
-            }
-            upstreams {
-              destination_name = "cockroach-sql"
-              local_bind_port  = 5432
-            }
-            upstreams {
               destination_name = "commerce-api"
               local_bind_port  = 10000
             }
