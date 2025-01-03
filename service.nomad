@@ -19,6 +19,10 @@ job "payment" {
         sidecar_service {
           proxy {
             upstreams {
+              destination_name = "postgres-sql"
+              local_bind_port  = 5432
+            }
+            upstreams {
               destination_name = "commerce-api"
               local_bind_port  = 10000
             }
@@ -68,16 +72,11 @@ RUST_LOG='{{ .RUST_LOG }}'
 
 HOST='0.0.0.0:{{ env "NOMAD_PORT_grpc" }}'
 
-{{ with nomadVar "nomad/jobs/payment"}}
-DB_HOST='{{ .DB_HOST }}'
-DB_PORT='{{ .DB_PORT }}'
-DB_DBNAME='{{ .DB_DBNAME }}'
-DB_USER='{{ .DB_USER }}'
-{{ end }}
-DB_ROOT_CERT='{{ env "NOMAD_SECRETS_DIR" }}/database_root_cert.crt'
-{{ with secret "kv2/data/services/payment" }}
-DB_PASSWORD='{{ .Data.data.DB_PASSWORD }}'
-{{ end }}
+DB_HOST='{{ env "NOMAD_UPSTREAM_IP_postgres-sql" }}'
+DB_PORT='{{ env "NOMAD_UPSTREAM_PORT_postgres-sql" }}'
+DB_DBNAME='payment'
+DB_USER='payment_user'
+DB_PASSWORD='{{- with secret "database/static-creds/payment_user" -}}{{ .Data.password }}{{- end -}}'
 
 {{ with nomadVar "nomad/jobs/" }}
 JWKS_URL='http://{{ .JWKS_HOST }}/oauth/v2/keys'
